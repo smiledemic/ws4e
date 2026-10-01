@@ -1,0 +1,186 @@
+/* ── Shortcuts panel (see system/js/shortcuts.js) ─────────────
+   Same look as the daily-picks pop-up: blurred polka-dot backdrop, tilted
+   panel with an offset accent shadow, a sticker in the corner, and
+   chunky keycaps. Colours come from the active theme's variables. */
+
+html.sc-lock { overflow: hidden; }
+
+.sc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+}
+.sc-overlay[hidden] { display: none; }
+
+.sc-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  opacity: 0;
+  transition: opacity 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease;
+  cursor: pointer;
+}
+.sc-overlay.is-open .sc-backdrop {
+  opacity: 1;
+  backdrop-filter: blur(9px) saturate(1.3);
+  -webkit-backdrop-filter: blur(9px) saturate(1.3);
+}
+
+.sc-panel {
+  position: relative;
+  width: min(540px, 100%);
+  padding: 26px 24px 20px;
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.9));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+  transform: scale(0.6) rotate(6deg);
+  opacity: 0;
+  transition: transform 0.45s cubic-bezier(.3, 1.6, .5, 1), opacity 0.2s ease;
+  outline: none;
+}
+.sc-overlay.is-open .sc-panel {
+  transform: scale(1) rotate(0.6deg);
+  opacity: 1;
+}
+/* The panel itself doesn't scroll, so the sticker can hang over its edge;
+   this inner wrapper does. The 6px pad keeps focus rings and pressed
+   keycaps from being clipped. */
+.sc-scroll {
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+  margin: -6px;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.sc-sticker {
+  position: absolute;
+  top: -6px;
+  right: 40px;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  transform: rotate(12deg);
+  filter: drop-shadow(-2px 3px 0 rgba(0, 0, 0, 0.5));
+  pointer-events: none;
+  z-index: 999;                   /* above everything else in the panel */
+}
+.sc-sticker[hidden] { display: none; }
+
+.sc-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: var(--url-color, #fff);
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.sc-close:hover { transform: rotate(90deg); color: var(--accent-color, #f44); }
+
+.sc-head { margin: 0 70px 14px 0; }
+.sc-head h2 {
+  display: inline-block;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: var(--url-color, #fff);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.sc-sub { margin-top: 8px; font-size: 0.8rem; opacity: 0.8; line-height: 1.45; }
+
+.sc-banner {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 2px dashed var(--accent-color, #f44);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  line-height: 1.45;
+  animation: sc-pop 0.45s cubic-bezier(.3, 1.6, .5, 1);
+}
+.sc-banner[hidden] { display: none; }
+@keyframes sc-pop { from { transform: scale(0.8) rotate(-2deg); opacity: 0; } }
+
+.sc-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+
+.sc-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0;
+  animation: sc-row-in 0.35s ease forwards;
+  animation-delay: calc(0.12s + var(--i, 0) * 0.04s);
+}
+.sc-row:nth-child(even) { background: rgba(255, 255, 255, 0.08); }
+@keyframes sc-row-in { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+
+.sc-keys { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.sc-join { opacity: 0.7; font-weight: bold; }
+
+.sc-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 2px solid var(--accent-color, #f44);
+  border-bottom-width: 5px;
+  background: #fafafa;
+  color: #111;
+  font: bold 0.85rem monospace;
+  transform: rotate(-2deg);
+  transition: transform 0.12s ease, border-bottom-width 0.12s ease;
+}
+.sc-row:nth-child(even) .sc-keys kbd { transform: rotate(2deg); }
+/* Hovering a row "presses" its keys. */
+.sc-row:hover .sc-keys kbd { transform: translateY(3px); border-bottom-width: 2px; }
+
+.sc-label { font-size: 0.85rem; line-height: 1.4; }
+
+.sc-note {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.2);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+.sc-note a { color: var(--accent-color, #f44); font-weight: bold; text-decoration: underline; text-underline-offset: 3px; }
+
+.sc-overlay button:focus-visible,
+.sc-overlay a:focus-visible { box-shadow: 0 0 0 3px var(--accent-color, #f44); }
+
+@media (max-width: 480px) {
+  .sc-panel { padding: 24px 14px 16px; }
+  .sc-row { grid-template-columns: 78px 1fr; gap: 8px; }
+  .sc-head h2 { font-size: 1.25rem; }
+  .sc-sticker { width: 46px; height: 46px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-panel, .sc-backdrop, .sc-close, .sc-keys kbd { transition: none; }
+  .sc-row, .sc-banner { animation: none; opacity: 1; }
+}

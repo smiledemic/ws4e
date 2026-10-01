@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png" />
+<title>Settings · WannaSmile4Evr</title>
+
+<style>
+/* Same family as the Store (store.html): tilted panels with offset accent
+   shadows, polka dots, pill buttons, all coloured by the active theme
+   (themify.js). */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+.chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(3deg);
+}
+
+/* ── Section tabs ── */
+.tabs {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  align-self: center;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: 0 5px 0 var(--accent-color, #f44);
+}
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85rem;
+  transition: background 0.15s, transform 0.15s;
+}
+.tabs a:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px) rotate(-1.5deg); }
+.tabs a.is-current { background: var(--accent-color, #f44); color: #fff; }
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.35deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel h2 {
+  display: inline-block;
+  font-size: clamp(18px, 2.6vh, 26px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.picked { font-size: 0.8rem; opacity: 0.85; }
+.picked b { color: var(--accent-color, #f44); }
+
+.tip {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 2px solid var(--accent-color, #f44);
+  border-bottom-width: 4px;
+  background: rgba(0,0,0,0.5);
+  font: bold 0.78rem/1.5 monospace;
+  text-align: center;
+  color: var(--url-color, #fff);
+}
+
+/* ── Option cards ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s, box-shadow 0.15s, opacity 0.2s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.item:nth-child(odd):hover  { transform: translateY(-4px) rotate(-1.2deg); }
+.item:nth-child(even):hover { transform: translateY(-4px) rotate(1.2deg); }
+.item:hover { border-color: var(--accent-color, #f44); }
+.item.is-on { border-color: var(--accent-color, #f44); box-shadow: 5px 5px 0 var(--accent-color, #f44); }
+.item.nope { animation: nope 0.35s ease; }
+@keyframes nope { 25% { transform: translateX(-6px) rotate(-2deg); } 60% { transform: translateX(5px) rotate(1.5deg); } }
+
+/* Behaviour cards flip between their two options on any click. */
+.item.flippable { cursor: pointer; user-select: none; }
+.item.flippable:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.item.flip { animation: flip 0.4s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes flip { 40% { transform: perspective(600px) rotateY(18deg) scale(0.97); } }
+
+/* Overridden by pageless paging: greyed out and locked. */
+.item.is-off { opacity: 0.45; border-style: dashed; }
+.item.is-off:hover { transform: none; border-color: rgba(255,255,255,0.22); }
+.item.flippable.is-off { cursor: not-allowed; }
+
+.tag {
+  position: absolute;
+  top: -11px;
+  right: 12px;
+  z-index: 2;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.7rem monospace;
+  transform: rotate(4deg);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.tag[hidden] { display: none; }
+.tag.alt { right: auto; left: 12px; transform: rotate(-5deg); background: #fff; color: #111; }
+
+.item-name { font-weight: bold; font-size: 1rem; line-height: 1.25; }
+.item-desc { font-size: 0.8rem; opacity: 0.85; line-height: 1.5; flex: 1; }
+.item-note { font-size: 0.75rem; font-style: italic; opacity: 0.9; }
+.item-note[hidden] { display: none; }
+
+/* Layout preview: pages as a small stack of sheets with an arrow, or one
+   long sheet; letters for A–Z, numbers for sheet order. */
+.mock {
+  position: relative;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 2px) 0 0 / 14px 14px,
+    rgba(0,0,0,0.35);
+  overflow: hidden;
+}
+.sheet {
+  position: relative;
+  width: 86px;
+  padding: 7px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  border-radius: 7px;
+  border: 2px solid var(--accent-color, #f44);
+  background: rgba(0,0,0,0.6);
+  box-shadow: 5px -5px 0 -1px rgba(255,255,255,0.25), 10px -10px 0 -2px rgba(255,255,255,0.12);
+  transition: transform 0.3s ease;
+}
+.sheet i {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.18);
+  font: bold 0.6rem monospace;
+  font-style: normal;
+}
+.item:hover .sheet { transform: rotate(-4deg) scale(1.05); }
+.mock.pageless .sheet {
+  width: 110px;
+  grid-template-columns: repeat(4, 1fr);
+  box-shadow: none;
+  align-self: start;
+  margin-top: 8px;
+  -webkit-mask: linear-gradient(#000 60%, transparent);
+          mask: linear-gradient(#000 60%, transparent);
+}
+.mock.pageless .sheet i { font-size: 0.55rem; }
+.mock .flip {
+  position: absolute;
+  right: 12px;
+  bottom: 8px;
+  font: bold 0.75rem monospace;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+}
+
+/* ── Buttons ── */
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.8rem monospace;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s;
+}
+.btn:hover:not([aria-disabled="true"]) { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active:not([aria-disabled="true"]) { transform: translateY(3px); box-shadow: 0 0 0 var(--accent-color, #f44); }
+.btn.is-on { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.45); }
+.btn[aria-disabled="true"] { cursor: not-allowed; box-shadow: none; border-style: dashed; }
+.btn:focus-visible, .tabs a:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+/* Two-way switch: two pill buttons sharing one border. */
+.seg { display: flex; border: 2px solid var(--accent-color, #f44); border-radius: 999px; padding: 3px; gap: 3px; box-shadow: 0 3px 0 var(--accent-color, #f44); }
+.seg .btn { border: none; box-shadow: none; padding: 6px 10px; }
+.seg .btn:hover:not([aria-disabled="true"]) { transform: none; background: rgba(255,255,255,0.1); }
+.seg .btn.is-on:hover { background: var(--accent-color, #f44); }
+.item.is-off .seg { box-shadow: none; border-style: dashed; }
+
+.foot { display: flex; justify-content: flex-end; margin-top: 18px; }
+.foot .btn { flex: 0 0 auto; }
+
+@media (max-width: 600px) {
+  .title { text-align: left; }
+  .tabs { border-radius: 18px; }
+  .panel:nth-of-type(even) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .item, .item.flip, .item.nope { animation: none; }
+  .item:hover, .item:hover .sheet, .btn:hover:not([aria-disabled="true"]), .tabs a:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Settings</h1>
+      <p class="tagline">Site-wide changes, saved in this browser. <span class="chip" id="systemChip">System 1 of 8</span></p>
+    </div>
+  </div>
+
+  <nav class="tabs" aria-label="Settings sections">
+    <a href="#paging">📄 Paging</a>
+    <a href="#behaviour">🧭 Page behaviour</a>
+    <a href="#quotes">💬 Quotes</a>
+    <a href="#bundles">🃏 Bundles</a>
+  </nav>
+
+  <section class="panel" id="paging" aria-labelledby="pagingTitle">
+    <div class="panel-head">
+      <h2 id="pagingTitle"><span class="emoji" aria-hidden="true">📄</span>Paging</h2>
+      <span class="picked" id="pagingSummary"></span>
+    </div>
+    <p class="tip">How the library is laid out. <b>Paged</b> keeps the sheet's pages and you flip them with the arrows or <kbd>←</kbd> / <kbd>→</kbd>. <b>Pageless</b> puts every asset on one long page. <b>Click a card anywhere</b> to use it; click Paged · A–Z again to flip between across and within pages. Any open WannaSmile tab switches over straight away.</p>
+    <div class="grid" id="layoutGrid"></div>
+  </section>
+
+  <section class="panel" id="behaviour" aria-labelledby="behaviourTitle">
+    <div class="panel-head">
+      <h2 id="behaviourTitle"><span class="emoji" aria-hidden="true">🧭</span>Page behaviour</h2>
+      <span class="picked" id="behaviourSummary"></span>
+    </div>
+    <p class="tip">Fine-tuning for paged layouts. <b>Click a card anywhere</b> to flip it between its two options. <b>Local</b> keeps you on the current page and only shows what matches there, so you can flip pages to see where each match lives. <b>Global</b> gathers matches from every page into one view. Pageless has no pages, so the paging options are switched off while it's on; the data cache still works.</p>
+    <div class="grid" id="behaviourGrid"></div>
+    <div class="foot"><button type="button" class="btn" id="resetBtn">↺ Reset to defaults</button></div>
+  </section>
+
+  <section class="panel" id="quotes" aria-labelledby="quotesTitle">
+    <div class="panel-head">
+      <h2 id="quotesTitle"><span class="emoji" aria-hidden="true">💬</span>Quotes</h2>
+      <span class="picked" id="quotesSummary"></span>
+    </div>
+    <p class="tip">How the quote bar under the header behaves. The Qtype button next to it switches between scrolling left, scrolling right and a still quote that stays centred. <b>Click a card anywhere</b> to flip it. Any open WannaSmile tab switches over straight away.</p>
+    <div class="grid" id="quoteGrid"></div>
+    <div class="foot"><button type="button" class="btn" id="quoteResetBtn">↺ Reset quote settings</button></div>
+  </section>
+
+  <section class="panel" id="bundles" aria-labelledby="bundlesTitle">
+    <div class="panel-head">
+      <h2 id="bundlesTitle"><span class="emoji" aria-hidden="true">🃏</span>Bundles</h2>
+      <span class="picked" id="bundlesSummary"></span>
+    </div>
+    <p class="tip">Bundles are one card holding several versions of an asset (beta, v2, copies). <b>Keep version assets hidden</b> leaves the versions out entirely. The other versions fan out behind the front card like a hand of cards: <b>click</b> one peeking out, or <b>Shift+click</b> the card, to bring the next one up. <b>Click a card anywhere</b> below to flip it. Saved straight away and any open WannaSmile tab switches over.</p>
+    <div class="grid" id="bundleGrid"></div>
+    <div class="foot"><button type="button" class="btn" id="bundleResetBtn">↺ Reset bundle settings</button></div>
+  </section>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+<script src="../../js/datacache.js"></script>
+<script src="../../js/paging.js"></script>
+<script src="../../js/quotes.js"></script>
+<script>
+"use strict";
+// ── Settings ───────────────────────────────────────────────────────────
+// Everything here is read and written through WS_Paging (paging.js), or for
+// the Quotes and Bundles sections WS_QuoteSettings (quotes.js) and
+// WS_BundleSettings (paging.js). The main site listens to all three, so an
+// open WannaSmile tab updates on the spot.
+(() => {
+  const P = window.WS_Paging;
+  const QS = window.WS_QuoteSettings;
+  const BS = window.WS_BundleSettings;
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => window.showToast?.(msg, 2200);
+
+  const LAYOUTS = [
+    { layout: "paged",    order: "sheet",        name: "Paged · sheet order",
+      desc: "The sheet's own pages, each in the order the library lists them. The classic view." },
+    { layout: "pageless", order: "sheet",        name: "Pageless · sheet order",
+      desc: "Every page on one long scroll: page 1's assets, then page 2's, and so on." },
+    { layout: "paged",    order: "alphabetical", name: "Paged · A–Z",
+      desc: "Pages in alphabetical order. Across pages sorts the whole library and deals it back into pages; within pages sorts each sheet page on its own.",
+      sub: { key: "alphaScope", name: "A–Z scope",
+        options: [["global", "Across pages (global)"], ["local", "Within pages (local)"]] } },
+    { layout: "pageless", order: "alphabetical", name: "Pageless · A–Z",
+      desc: "The whole library on one page, A to Z. Handy when you know what you're after." },
+  ];
+
+  // Each two-way setting: which option is "a" / "b", and whether pageless
+  // switches it off.
+  const SWITCHES = [
+    { key: "filterScope", name: "Category filters",
+      desc: "Picking categories or sub-categories from the search menu.",
+      options: [["local", "Per page (local)"], ["global", "All pages (global)"]] },
+    { key: "searchScope", name: "Search",
+      desc: "Typing in the search box. Global drops the pages while you search; local keeps them and shows this page's matches.",
+      options: [["global", "All pages (global)"], ["local", "Per page (local)"]] },
+    { key: "flipAlign", name: "Page flip align",
+      desc: "Scrolled down and flipped a page? On takes you to the top of the next page instead of keeping your scroll spot.",
+      options: [[false, "Off"], [true, "On"]] },
+    // Not a paging option: stays usable while pageless.
+    { key: "cache", name: "Data cache", pagelessOk: true,
+      desc: "On saves the library, quotes and search quotes after one fetch and loads from that copy from then on: no waiting on the server. Press R on the site whenever you want fresh data. Off deletes the copy.",
+      options: [[false, "Off"], [true, "On"]] },
+  ];
+
+  // Quote bar settings (quotes.js). Their own store, so flipping one never
+  // re-sorts the library the way a paging change does.
+  const QUOTE_SWITCHES = [
+    { key: "keepOnSwitch", name: "Keep quote on Qtype switch", store: QS, pagelessOk: true,
+      desc: "Off: every Qtype switch shows a different quote. On: the quote you're reading stays and just changes direction, or stops in the middle, or starts scrolling from where it sat. A quote that's fully off screen when you switch is swapped for a new one either way.",
+      options: [[false, "Off"], [true, "On"]] },
+  ];
+  // Bundle card looks (main.js). Also its own store: a look-only change.
+  const BUNDLE_SWITCHES = [
+    { key: "tilt", name: "Deck tilt", store: BS, pagelessOk: true, emoji: "🃏",
+      desc: "Which way the other versions fan out behind a bundle's front card. The shuffle animation follows the same side.",
+      options: [["right", "Right"], ["left", "Left"]] },
+    { key: "hideVersions", name: "Keep version assets hidden", store: BS, pagelessOk: true, emoji: "🙈",
+      desc: "Off: versions of an asset (rows marked merge in the sheet) show as a deck behind the parent card. On: they stay hidden and aren't built at all, so you only see the parent asset.",
+      options: [[false, "Off"], [true, "On"]] },
+  ];
+  const storeOf = (sw) => sw.store || P;
+
+  // The data cache card's status line: how much is saved, and from when.
+  async function cacheStatus() {
+    const C = window.WS_DataCache;
+    if (!C) return "";
+    if (!C.enabled()) return "Nothing is saved while it's off.";
+    const { chars, feeds } = C.info();
+    if (!chars) return "Nothing saved yet: the next time the site loads, it saves a copy.";
+    const kb = Math.max(1, Math.round(chars / 1024));
+    const at = await C.savedAt("assets");
+    const when = at ? new Date(at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+    return `Saved: ${kb} KB (${feeds.join(", ")})${when ? `, library from ${when}` : ""}.`;
+  }
+
+  const isDefault = (sw, s) => s[sw.key] === storeOf(sw).DEFAULTS[sw.key];
+  const label = (sw, v) => sw.options.find(([val]) => val === v)?.[1] || String(v);
+  // "All pages (global)" -> "all pages", for summaries and toasts.
+  const short = (text) => text.replace(/ \(.*\)/, "").toLowerCase();
+
+  // ── Build ────────────────────────────────────────────────────────────
+  const layoutCards = LAYOUTS.map((opt, i) => {
+    const card = document.createElement("article");
+    card.className = "item";
+    card.style.setProperty("--i", i);
+    const pageless = opt.layout === "pageless";
+    const marks = opt.order === "alphabetical" ? "ABCDEFGHIJKL" : "123456789012";
+    const n = pageless ? 12 : 9;
+    card.innerHTML = `
+      <span class="tag">In use</span>
+      <span class="tag alt" hidden>Default</span>
+      <div class="mock${pageless ? " pageless" : ""}" aria-hidden="true">
+        <div class="sheet">${[...marks.slice(0, n)].map((c) => `<i>${c}</i>`).join("")}</div>
+        ${pageless ? "" : `<span class="flip">1/3 →</span>`}
+      </div>
+      <div class="item-name"></div>
+      <p class="item-desc"></p>
+      ${opt.sub ? `<div class="seg" role="group"></div>` : ""}
+      <div class="btns"><button type="button" class="btn use"></button></div>`;
+    card.querySelector(".item-name").textContent = opt.name;
+    card.querySelector(".item-desc").textContent = opt.desc;
+    card.querySelector(".tag.alt").hidden = !(opt.layout === P.DEFAULTS.layout && opt.order === P.DEFAULTS.order);
+    const use = () => {
+      P.set("layout", opt.layout);
+      P.set("order", opt.order);
+    };
+    const replay = (cls) => { card.classList.remove(cls); void card.offsetWidth; card.classList.add(cls); };
+    const inUse = (s = P.get()) => s.layout === opt.layout && s.order === opt.order;
+    const activate = () => {
+      const s = P.get();
+      if (inUse(s)) return false;
+      use();
+      replay("flip");
+      toast(`📄 Paging: ${opt.name}${opt.sub ? `, ${short(label(opt.sub, s[opt.sub.key]))}` : ""}`);
+      return true;
+    };
+    const btn = card.querySelector(".btn.use");
+    btn.addEventListener("click", (e) => { e.stopPropagation(); activate(); });
+
+    // Sub-option (A–Z across / within pages): picking one also switches
+    // this layout on.
+    let subBtns = [];
+    if (opt.sub) {
+      const seg = card.querySelector(".seg");
+      seg.setAttribute("aria-label", opt.sub.name);
+      subBtns = opt.sub.options.map(([val, text]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "btn";
+        b.textContent = text;
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const s = P.get();
+          if (inUse(s) && s[opt.sub.key] === val) return;
+          P.set(opt.sub.key, val);
+          use();
+          replay("flip");
+          toast(`📄 Paging: ${opt.name}, ${short(text)}`);
+        });
+        seg.appendChild(b);
+        return { val, b };
+      });
+    }
+
+    // Click anywhere on the card (or Enter/Space on it): switch to this
+    // layout. Already in use with a sub-option? Flip the sub-option instead.
+    const clickCard = () => {
+      if (activate()) return;
+      if (!opt.sub) return;
+      const cur = P.get()[opt.sub.key];
+      const [val, text] = opt.sub.options.find(([v]) => v !== cur);
+      P.set(opt.sub.key, val);
+      replay("flip");
+      toast(`📄 Paging: ${opt.name}, ${short(text)}`);
+    };
+    card.classList.add("flippable");
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", opt.sub ? `${opt.name}: click to use, click again to switch ${opt.sub.name}` : `${opt.name}: click to use`);
+    card.addEventListener("click", clickCard);
+    card.addEventListener("keydown", (e) => {
+      if (e.target !== card || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      clickCard();
+    });
+    $("layoutGrid").appendChild(card);
+    return { opt, card, btn, subBtns, tag: card.querySelector(".tag") };
+  });
+
+  function makeSwitchCard(sw, i, grid) {
+    const store = storeOf(sw);
+    const card = document.createElement("article");
+    card.className = "item";
+    card.style.setProperty("--i", i);
+    card.innerHTML = `
+      <span class="tag alt" hidden>Default</span>
+      <span class="tag" hidden>Off in pageless</span>
+      <div class="item-name"></div>
+      <p class="item-desc"></p>
+      <p class="item-note" hidden>Pageless shows everything at once, so this doesn't apply.</p>
+      ${sw.key === "cache" ? `<p class="item-note cache-status" aria-live="polite"></p>` : ""}
+      <div class="seg" role="group"></div>`;
+    card.querySelector(".item-name").textContent = sw.name;
+    card.querySelector(".item-desc").textContent = sw.desc;
+    const seg = card.querySelector(".seg");
+    seg.setAttribute("aria-label", sw.name);
+    const replay = (cls) => { card.classList.remove(cls); void card.offsetWidth; card.classList.add(cls); };
+    const choose = (val, text) => {
+      if (store.get()[sw.key] === val) return;
+      store.set(sw.key, val);
+      replay("flip");
+      toast(`${sw.emoji || (store === P ? "🧭" : "💬")} ${sw.name}: ${text}`);
+    };
+    const btns = sw.options.map(([val, text]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn";
+      b.textContent = text;
+      b.addEventListener("click", (e) => {
+        if (b.getAttribute("aria-disabled") === "true") return;
+        e.stopPropagation();   // the card's own click would flip it straight back
+        choose(val, text);
+      });
+      seg.appendChild(b);
+      return { val, b };
+    });
+
+    // Click anywhere on the card (or Enter/Space on it) to flip to the other
+    // option. A locked card shakes instead, to say why nothing happens.
+    const flip = () => {
+      if (card.classList.contains("is-off")) {
+        replay("nope");
+        toast("Switched off while paging is pageless.");
+        return;
+      }
+      const cur = store.get()[sw.key];
+      const [val, text] = sw.options.find(([v]) => v !== cur);
+      choose(val, text);
+    };
+    card.classList.add("flippable");
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", `${sw.name}: click to switch`);
+    card.addEventListener("click", flip);
+    card.addEventListener("keydown", (e) => {
+      if (e.target !== card || (e.key !== "Enter" && e.key !== " ")) return;
+      e.preventDefault();
+      flip();
+    });
+    grid.appendChild(card);
+    return { sw, card, btns,
+      def: card.querySelector(".tag.alt"), off: card.querySelector(".tag:not(.alt)"), note: card.querySelector(".item-note") };
+  }
+  const switchCards = [
+    ...SWITCHES.map((sw, i) => makeSwitchCard(sw, i, $("behaviourGrid"))),
+    ...QUOTE_SWITCHES.map((sw, i) => makeSwitchCard(sw, i, $("quoteGrid"))),
+    ...BUNDLE_SWITCHES.map((sw, i) => makeSwitchCard(sw, i, $("bundleGrid"))),
+  ];
+
+  // ── Paint ────────────────────────────────────────────────────────────
+  function paint() {
+    const s = P.get();
+    const pageless = s.layout === "pageless";
+
+    layoutCards.forEach(({ opt, card, btn, subBtns, tag }) => {
+      const on = s.layout === opt.layout && s.order === opt.order;
+      card.classList.toggle("is-on", on);
+      tag.hidden = !on;
+      btn.classList.toggle("is-on", on);
+      btn.textContent = on ? "★ In use" : "Use this";
+      btn.setAttribute("aria-pressed", String(on));
+      // The saved sub-choice stays marked even while another layout is in
+      // use, so switching back lands on it.
+      subBtns.forEach(({ val, b }) => {
+        const picked = s[opt.sub.key] === val;
+        b.classList.toggle("is-on", picked);
+        b.setAttribute("aria-pressed", String(picked));
+      });
+    });
+
+    const qs = QS.get();
+    switchCards.forEach(({ sw, card, btns, def, off, note }) => {
+      const st = storeOf(sw) === P ? s : storeOf(sw) === QS ? qs : storeOf(sw).get();
+      const locked = pageless && !sw.pagelessOk;
+      card.classList.toggle("is-off", locked);
+      off.hidden = !locked;
+      note.hidden = !locked;
+      def.hidden = locked || !isDefault(sw, st);
+      btns.forEach(({ val, b }) => {
+        const on = st[sw.key] === val;
+        b.classList.toggle("is-on", on);
+        b.setAttribute("aria-pressed", String(on));
+        b.setAttribute("aria-disabled", String(locked));
+      });
+    });
+    const statusEl = document.querySelector(".cache-status");
+    if (statusEl) cacheStatus().then((text) => { statusEl.textContent = text; });
+
+    const current = LAYOUTS.find((o) => o.layout === s.layout && o.order === s.order);
+    $("systemChip").textContent = `System ${P.systemNumber(s)} of ${P.SYSTEM_COUNT}`;
+    const sub = current.sub && s.layout === "paged" ? ` · ${short(label(current.sub, s[current.sub.key]))}` : "";
+    $("pagingSummary").innerHTML = `Now: <b>${current.name}${sub}</b>`;
+    $("behaviourSummary").innerHTML = SWITCHES
+      .filter((sw) => !pageless || sw.pagelessOk)
+      .map((sw) => `${sw.name.toLowerCase()} <b>${short(label(sw, s[sw.key]))}</b>`)
+      .join(" · ") + (pageless ? " · paging options off while pageless" : "");
+    $("quotesSummary").innerHTML = QUOTE_SWITCHES
+      .map((sw) => `${sw.name.toLowerCase()} <b>${short(label(sw, qs[sw.key]))}</b>`)
+      .join(" · ");
+    const bs = BS.get();
+    $("bundlesSummary").innerHTML = BUNDLE_SWITCHES
+      .map((sw) => `${sw.name.toLowerCase()} <b>${short(label(sw, bs[sw.key]))}</b>`)
+      .join(" · ");
+  }
+
+  $("resetBtn").addEventListener("click", () => {
+    P.reset();
+    toast("↺ Settings back to defaults");
+  });
+  $("quoteResetBtn").addEventListener("click", () => {
+    QS.reset();
+    toast("↺ Quote settings back to defaults");
+  });
+  $("bundleResetBtn").addEventListener("click", () => {
+    BS.reset();
+    toast("↺ Bundle settings back to defaults");
+  });
+
+  // paging.js fires this for changes made here and in other tabs. The
+  // cache status also follows copies saved by an open WannaSmile tab.
+  document.addEventListener("ws:paging-changed", paint);
+  document.addEventListener("ws:quote-settings-changed", paint);
+  document.addEventListener("ws:bundle-settings-changed", paint);
+  document.addEventListener("ws:data-cache-change", paint);
+  window.addEventListener("storage", (e) => { if (e.key === null || e.key.startsWith("ws_cache_")) paint(); });
+  paint();
+
+  // Highlight the tab for the section in view.
+  const tabs = [...document.querySelectorAll(".tabs a")];
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      tabs.forEach((a) => a.classList.toggle("is-current", a.getAttribute("href") === `#${e.target.id}`));
+    });
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  document.querySelectorAll("section.panel").forEach((s) => io.observe(s));
+})();
+</script>
+</body>
+</html>

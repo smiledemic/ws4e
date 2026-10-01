@@ -1,0 +1,678 @@
+/* ── Profile modal (see system/js/profile.js) ─────────────────
+   Same family as the Shortcuts / daily-picks / tutorial pop-ups: blurred
+   polka-dot backdrop, tilted panels with offset accent shadows, pill
+   buttons, theme variables.
+
+   Three pieces on one overlay:
+     left    #pfpLibrary     profile pictures (Upload pinned first)
+     centre  .pf-center      the card (banner, avatar, name) + Save below
+     right   #bannerLibrary  banners (Upload pinned first)
+   The card only shows what's on display; everything else is behind the
+   gear, the avatar (pencil on hover) or the banner. Sizes are in vh inside
+   clamp()s so it keeps its proportions on any PC screen. */
+
+#profileOverlay {
+  --pf-banner-h: clamp(90px, 17vh, 230px);
+  --pf-avatar:   clamp(80px, 15vh, 190px);
+  --pf-pad:      clamp(14px, 2.8vh, 34px);
+  --pf-gap:      clamp(8px, 1.6vh, 20px);
+  --pf-font:     clamp(12px, 1.6vh, 17px);
+  --pf-side-w:   clamp(230px, 23vw, 400px);
+
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  font-family: monospace;
+  font-size: var(--pf-font);
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(9px) saturate(1.3);
+  -webkit-backdrop-filter: blur(9px) saturate(1.3);
+}
+#profileOverlay.visible {
+  display: flex;
+  animation: pf-fade 0.25s ease;
+}
+@keyframes pf-fade { from { opacity: 0; } }
+@keyframes pf-pop { from { transform: scale(0.7) rotate(-5deg); opacity: 0; } }
+
+/* ── Centre: card + Save ── */
+.pf-center {
+  position: relative;
+  width: clamp(340px, 40vw, 100%);
+}
+
+#profileOverlayPanel {
+  position: relative;
+  width: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+  padding-bottom: var(--pf-pad);
+  border-radius: 22px 18px 24px 16px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.92));
+  box-shadow: 8px 8px 0 var(--accent-color, #f44);
+  transform: rotate(-0.4deg);
+  outline: none;
+}
+#profileOverlay.visible #profileOverlayPanel { animation: pf-pop 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+
+/* "Edit your profile": a tilted sticker in the top-left corner. */
+.pf-title {
+  position: absolute;
+  z-index: 2;
+  top: clamp(10px, 1.6vh, 18px);
+  left: clamp(12px, 1.8vh, 22px);
+  margin: 0;
+  padding: 3px 12px 5px;
+  border-radius: 10px 14px 9px 13px;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: clamp(16px, 2.5vh, 28px);
+  line-height: 1.15;
+  color: var(--url-color, #fff);
+  transform: rotate(-3deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), box-shadow 0.15s ease;
+}
+.pf-title:hover { transform: rotate(-5deg) scale(1.05); box-shadow: 4px 4px 0 var(--accent-color, #f44); }
+.pf-title-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-shadow: inherit;
+  cursor: pointer;
+}
+.pf-title-btn:focus-visible { outline: 3px solid var(--url-color, #fff); outline-offset: 4px; border-radius: 6px; }
+
+/* Gear + close, top-right. */
+.pf-top-actions {
+  position: absolute;
+  z-index: 3;
+  top: clamp(8px, 1.2vh, 16px);
+  right: clamp(8px, 1.2vh, 16px);
+  display: flex;
+  gap: clamp(6px, 0.8vh, 10px);
+}
+.pf-icon-btn {
+  width: clamp(30px, 3.8vh, 42px);
+  height: clamp(30px, 3.8vh, 42px);
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1em;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.pf-icon-btn:hover { color: var(--accent-color, #f44); border-color: var(--accent-color, #f44); }
+#profileOverlayClose:hover { transform: rotate(90deg); }
+#profileGearBtn:hover, #profileGearBtn[aria-expanded="true"] { transform: rotate(60deg); color: var(--accent-color, #f44); border-color: var(--accent-color, #f44); }
+
+.pf-gear-wrap { position: relative; }
+.pf-gear-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 210px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 14px 10px 14px 12px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.95));
+  box-shadow: 5px 5px 0 var(--accent-color, #f44);
+  transform-origin: top right;
+  animation: pf-pop 0.25s cubic-bezier(.3, 1.6, .5, 1);
+}
+.pf-gear-menu[hidden] { display: none; }
+.pf-gear-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.9em monospace;
+  text-align: left;
+  cursor: pointer;
+}
+.pf-gear-menu button i { width: 1.2em; text-align: center; color: var(--accent-color, #f44); }
+.pf-gear-menu button:hover, .pf-gear-menu button:focus-visible { background: rgba(255, 255, 255, 0.1); outline: none; }
+.pf-gear-menu [aria-checked="true"] { background: rgba(255, 255, 255, 0.08); }
+.pf-gear-menu [role="menuitemcheckbox"][aria-checked="true"]::after { content: "✓"; margin-left: auto; color: var(--accent-color, #f44); }
+
+/* Picture position: a three-way segmented pick. */
+.pf-gear-group {
+  margin-top: 4px;
+  padding: 8px 6px 4px;
+  border-top: 2px dashed rgba(255, 255, 255, 0.18);
+}
+.pf-gear-label {
+  display: block;
+  margin: 0 6px 6px;
+  font-size: 0.75em;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.pf-align-choices { display: flex; gap: 4px; }
+.pf-gear-menu .pf-align-choices button {
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 4px;
+  font-size: 0.75em;
+  text-align: center;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+}
+.pf-gear-menu .pf-align-choices button i { width: auto; font-size: 1.2em; }
+.pf-gear-menu .pf-align-choices [aria-checked="true"] {
+  background: var(--accent-color, #f44);
+  border-color: var(--accent-color, #f44);
+  color: #fff;
+}
+.pf-gear-menu .pf-align-choices [aria-checked="true"] i { color: #fff; }
+
+/* ── Banner (click = banner library) ── */
+.profile-banner {
+  position: relative;
+  height: var(--pf-banner-h);
+  /* No banner yet: accent-tinted gradient + polka dots. profile.js adds
+     .has-image and sets --pf-banner-img once there is one. */
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.18) 1.5px, transparent 2px) 0 0 / 18px 18px,
+    linear-gradient(120deg, var(--accent-color, #f44), rgba(0, 0, 0, 0.85));
+  border-bottom: 3px solid var(--accent-color, #f44);
+  cursor: pointer;
+  outline: none;
+}
+.profile-banner.has-image { background: var(--pf-banner-img) center / cover no-repeat; }
+
+/* Pencil badges: show on hover / keyboard focus. */
+.pf-edit-badge,
+.pf-avatar-pencil {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: scale(0.6) rotate(-20deg);
+  transition: opacity 0.15s ease, transform 0.2s cubic-bezier(.3, 1.6, .5, 1);
+  pointer-events: none;
+}
+.pf-edit-badge {
+  right: clamp(10px, 1.4vh, 18px);
+  bottom: clamp(10px, 1.4vh, 18px);
+  width: clamp(28px, 3.6vh, 40px);
+  height: clamp(28px, 3.6vh, 40px);
+}
+.profile-banner:hover .pf-edit-badge,
+.profile-banner:focus-visible .pf-edit-badge { opacity: 1; transform: none; }
+.profile-banner:focus-visible { box-shadow: inset 0 0 0 3px var(--accent-color, #f44); }
+
+/* ── Avatar + name, overlapping the banner's bottom edge ── */
+.profile-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--pf-gap);
+  padding: 0 var(--pf-pad);
+  margin-top: calc(var(--pf-avatar) * -0.5);
+}
+.pf-avatar-btn {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.profile-preview {
+  display: block;
+  width: var(--pf-avatar);
+  height: var(--pf-avatar);
+  border-radius: 50%;
+  object-fit: cover;
+  border: clamp(3px, 0.5vh, 6px) solid var(--accent-color, #f44);
+  box-shadow: 0 0 0 clamp(3px, 0.5vh, 6px) var(--aside-bg, #000);
+  background: rgba(255, 255, 255, 0.08);
+  transition: filter 0.15s ease;
+}
+.pf-avatar-pencil {
+  inset: 0;
+  margin: auto;
+  width: 38%;
+  height: 38%;
+  font-size: clamp(14px, 2.4vh, 26px);
+}
+.pf-avatar-btn:hover .profile-preview,
+.pf-avatar-btn:focus-visible .profile-preview { filter: brightness(0.6); }
+.pf-avatar-btn:hover .pf-avatar-pencil,
+.pf-avatar-btn:focus-visible .pf-avatar-pencil { opacity: 1; transform: none; }
+.pf-avatar-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--url-color, #fff); }
+
+/* Picture frames: an overlay ABOVE the picture (z-index over it and over
+   the picture's ring), scaled up and centred so a frame can overhang. */
+.profile-preview { position: relative; z-index: 1; }
+.pf-frame {
+  position: absolute;
+  top: 50%; left: 50%;
+  width:  calc(100% * var(--pf-frame-scale, 1.2));
+  height: calc(100% * var(--pf-frame-scale, 1.2));
+  max-width: none;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+.pf-frame[hidden] { display: none; }
+.pf-avatar-pencil { z-index: 3; }
+
+.profile-head-text {
+  min-width: 0;
+  flex: 1;
+  padding-bottom: clamp(4px, 0.8vh, 10px);
+}
+
+/* Picture position (profile.js sets data-align from "pfpAlign"). */
+.profile-head[data-align="center"] {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.profile-head[data-align="center"] .profile-head-text { flex: none; max-width: 100%; padding-bottom: 0; }
+.profile-head[data-align="center"] .pf-name-row { justify-content: center; }
+.profile-head[data-align="right"] { flex-direction: row-reverse; }
+.profile-head[data-align="right"] .profile-head-text { text-align: right; }
+.profile-head[data-align="right"] .pf-name-row { justify-content: flex-end; }
+.pf-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.profile-overlay-username {
+  min-width: 0;
+  font-size: clamp(18px, 2.8vh, 30px);
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-overlay-username[hidden] { display: none; }
+.pf-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 10px;
+  border-radius: 10px;
+  border: 2px solid var(--accent-color, #f44);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--url-color, #fff);
+  font: bold clamp(16px, 2.5vh, 26px) monospace;
+  outline: none;
+}
+.pf-name-input[hidden] { display: none; }
+.pf-name-input::placeholder { color: inherit; opacity: 0.45; font-weight: normal; }
+.pf-name-edit {
+  flex: none;
+  width: clamp(26px, 3.2vh, 36px);
+  height: clamp(26px, 3.2vh, 36px);
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.pf-name-edit:hover { transform: rotate(-12deg) scale(1.08); border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); }
+.pf-name-edit.is-editing { background: var(--accent-color, #f44); border-color: var(--accent-color, #f44); color: #fff; }
+.profile-overlay-handle {
+  margin-top: 2px;
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+.profile-overlay-handle:empty { display: none; }
+
+/* ── Save: below the card, only while something changed ── */
+/* Absolutely placed under the card, so showing/hiding it never shifts
+   the (centred) card. */
+.pf-save-row {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: clamp(14px, 2.2vh, 24px);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.pf-save-row > * { pointer-events: auto; }
+#profileSaveBtn {
+  padding: clamp(9px, 1.3vh, 15px) clamp(22px, 3.4vh, 40px);
+  font-size: 1.05em;
+  transform: rotate(-1deg);
+  animation: pf-pop 0.35s cubic-bezier(.3, 1.6, .5, 1);
+}
+#profileSaveBtn[hidden] { display: none; }
+
+/* ── Libraries (side modals) ── */
+.pf-library {
+  position: fixed;
+  top: 50%;
+  z-index: 2;
+  width: var(--pf-side-w);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(12px, 1.8vh, 20px);
+  border-radius: 20px 16px 22px 18px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.92));
+}
+.pf-library[hidden] { display: none; }
+.pf-library-left {
+  left: clamp(12px, 2vw, 36px);
+  transform: translateY(-50%) rotate(0.6deg);
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+  animation: pf-slide-left 0.4s cubic-bezier(.3, 1.4, .5, 1);
+}
+.pf-library-right {
+  right: clamp(12px, 2vw, 36px);
+  transform: translateY(-50%) rotate(-0.6deg);
+  box-shadow: 8px 8px 0 var(--accent-color, #f44);
+  animation: pf-slide-right 0.4s cubic-bezier(.3, 1.4, .5, 1);
+}
+@keyframes pf-slide-left  { from { opacity: 0; transform: translate(-40px, -50%) rotate(-4deg); } }
+@keyframes pf-slide-right { from { opacity: 0; transform: translate(40px, -50%) rotate(4deg); } }
+
+.pf-library-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: clamp(8px, 1.2vh, 14px);
+}
+.pf-library-head h3 {
+  margin: 0;
+  font-size: clamp(16px, 2.2vh, 24px);
+  transform: rotate(-2deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.pf-library-close { width: clamp(26px, 3.2vh, 34px); height: clamp(26px, 3.2vh, 34px); }
+.pf-library-close:hover { transform: rotate(90deg); }
+
+.pf-library-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: clamp(8px, 1.1vh, 12px);
+  overflow-y: auto;
+  padding: 10px 8px 8px 10px;
+  margin: -10px -8px 0 -10px;
+  scrollbar-width: thin;
+  align-content: start;
+}
+.pf-library-grid[hidden] { display: none; }
+.pfp-grid    { grid-template-columns: repeat(auto-fill, minmax(clamp(64px, 8.5vh, 104px), 1fr)); }
+.banner-grid { grid-template-columns: 1fr; }
+.pf-library-msg { grid-column: 1 / -1; padding: 10px; opacity: 0.8; }
+
+.pf-library-foot {
+  margin-top: clamp(10px, 1.4vh, 16px);
+  padding-top: clamp(10px, 1.4vh, 16px);
+  border-top: 2px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: center;
+}
+
+/* Tiles */
+.pf-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--url-color, #fff);
+  font: bold 0.75em monospace;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s ease, box-shadow 0.15s ease;
+  animation: pf-pop 0.35s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(min(var(--i, 0), 20) * 18ms);
+}
+.pf-tile:nth-child(odd):hover  { transform: translateY(-3px) rotate(-1.5deg); }
+.pf-tile:nth-child(even):hover { transform: translateY(-3px) rotate(1.5deg); }
+.pf-tile:hover { border-color: var(--accent-color, #f44); }
+.pf-tile:focus-visible { outline: none; border-color: var(--accent-color, #f44); box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.pf-tile.is-picked { border-color: var(--accent-color, #f44); box-shadow: 4px 4px 0 var(--accent-color, #f44); }
+.pf-tile.is-picked::after {
+  content: "✓";
+  position: absolute;
+  top: -8px; left: -8px;
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-size: 0.95em;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+.pf-tile img { width: 100%; object-fit: cover; border-radius: 6px; display: block; background: rgba(0, 0, 0, 0.4); }
+.pfp-grid .pf-tile img    { aspect-ratio: 1; border-radius: 50%; }
+.banner-grid .pf-tile img { aspect-ratio: 4 / 1; }
+.pf-tile-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; padding: 0 2px; }
+.banner-grid .pf-tile-name { text-align: left; }
+.pf-tile-tag {
+  position: absolute;
+  top: 7px; right: 7px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 0.8em;
+}
+
+/* The pinned #1 "Upload" tile. */
+.pf-tile.is-upload {
+  border-style: dashed;
+  border-color: var(--accent-color, #f44);
+  background: rgba(255, 255, 255, 0.08);
+}
+.pf-tile-upload {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  border-radius: 6px;
+  color: var(--accent-color, #f44);
+  font-size: 1.6em;
+}
+.pfp-grid .pf-tile-upload    { aspect-ratio: 1; border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
+.banner-grid .pf-tile-upload { aspect-ratio: 4 / 1; background: rgba(0, 0, 0, 0.35); }
+.pf-tile-pin {
+  position: absolute;
+  top: -8px; right: -8px;
+  width: 22px; height: 22px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+  font-size: 0.95em;
+  transform: rotate(8deg);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Crop (inside the picture library) */
+.pf-crop { flex: 1; min-height: 0; }
+#cropPreview, #bannerCropPreview { display: block; max-width: 100%; max-height: 50vh; border-radius: 10px; }
+
+/* Advanced editing (gear menu): a hint in each library and a crop badge on
+   every tile, since picking one now opens the cropper. */
+.pf-adv-hint {
+  display: none;
+  margin: 0 0 clamp(8px, 1.2vh, 12px);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 2px dashed var(--accent-color, #f44);
+  font-size: 0.8em;
+  opacity: 0.9;
+}
+.pf-adv-hint i { color: var(--accent-color, #f44); margin-right: 4px; }
+#profileOverlay.pf-advanced .pf-adv-hint { display: block; }
+#profileOverlay.pf-advanced .pf-tile:not(.is-upload)::before {
+  content: "\f565";                                   /* fa-crop-simple */
+  font: 900 0.8em "Font Awesome 6 Free";
+  position: absolute;
+  bottom: 22px; right: 6px;
+  z-index: 1;
+  width: 20px; height: 20px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+#profileOverlay.pf-advanced .pf-tile:hover::before,
+#profileOverlay.pf-advanced .pf-tile:focus-visible::before { opacity: 1; }
+.crop-actions { display: flex; flex-wrap: wrap; gap: clamp(6px, 0.8vh, 10px); margin-top: var(--pf-gap); }
+
+/* ── Buttons: accent pill for the main action, outlined pills for the rest ── */
+.overlay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: clamp(5px, 0.8vh, 10px) clamp(10px, 1.5vh, 18px);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.9em monospace;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.overlay-btn:hover:not(:disabled) {
+  transform: translateY(-2px) rotate(-2deg);
+  border-color: var(--accent-color, #f44);
+  color: var(--accent-color, #f44);
+}
+.overlay-btn:active:not(:disabled) { transform: translateY(1px); }
+.overlay-btn:disabled { opacity: 0.4; cursor: default; border-style: dashed; }
+
+.save-btn {
+  border-color: transparent;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+}
+.save-btn:hover:not(:disabled) { border-color: transparent; color: #fff; }
+.save-btn:active:not(:disabled) { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45); }
+
+.overlay-btn:focus-visible,
+.pf-icon-btn:focus-visible,
+.pf-name-edit:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+/* Narrow windows: the libraries sit over the card instead of beside it. */
+@media (max-width: 1100px) {
+  .pf-library { z-index: 4; }
+}
+@media (max-width: 720px) {
+  .pf-center { width: 100%; }
+  .pf-library { width: calc(100vw - 28px); left: 14px; right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #profileOverlay.visible,
+  #profileOverlay.visible #profileOverlayPanel,
+  .pf-library, .pf-tile, .pf-gear-menu, #profileSaveBtn { animation: none; }
+  .overlay-btn, .pf-icon-btn, .pf-tile, .pf-edit-badge, .pf-avatar-pencil { transition: none; }
+}
+
+/* ── Library tabs (Pictures / Frames) ── */
+.pf-tabs { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }
+.pf-tab {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+.pf-tab[aria-selected="true"] { background: var(--accent-color, #f44); border-color: var(--accent-color, #f44); color: #fff; }
+.pf-tab:focus-visible { outline: 2px solid var(--url-color, #fff); outline-offset: 2px; }
+.frame-grid { grid-template-columns: repeat(auto-fill, minmax(clamp(64px, 8.5vh, 104px), 1fr)); }
+.frame-grid .pf-tile img { border-radius: 6px; object-fit: contain; padding: 4px; }
+.frame-grid .pf-tile.is-none .pf-tile-upload { aspect-ratio: 1; border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
+.pf-library-foot [hidden] { display: none; }
+.frame-grid .pf-tile.is-missing img { opacity: 0.15; }
+
+/* ── Card wrapper: the card's background image, behind everything on it.
+   Height fills the card, width overflows and is cut off (the panel and this
+   layer both clip). Opacity comes from the sheet / the visitor's slider. ── */
+.pf-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--pf-wrapper-img) center / auto 100% no-repeat;
+  opacity: var(--pf-wrapper-opacity, 1);
+}
+.pf-wrapper[hidden] { display: none; }
+#profileOverlayPanel .profile-banner { position: relative; z-index: 1; }
+
+.wrapper-grid { grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 12vh, 150px), 1fr)); }
+.wrapper-grid .pf-tile img { aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; }
+.wrapper-grid .pf-tile.is-none .pf-tile-upload { aspect-ratio: 3 / 4; border-radius: 8px; background: rgba(0, 0, 0, 0.35); }
+.wrapper-grid .pf-tile.is-missing img { opacity: 0.15; }
+/* Wrapper opacity: a slider row inside the gear menu. */
+.pf-opacity { display: flex; align-items: center; gap: 8px; margin: 0 6px; font-size: 0.85em; }
+.pf-opacity input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent-color, #f44); cursor: pointer; }
+.pf-opacity output { min-width: 4ch; text-align: right; font-weight: bold; }
+
+/* Frames with a blend mode (FramesWS `blend`) blend with the picture under them. */
+.pfp-wrap, .pf-avatar-btn { isolation: isolate; }
+
+/* Library head: title + close on the first row, tabs on their own row so
+   three tabs never squeeze the close button. */
+.pf-library-head { flex-wrap: wrap; }
+.pf-library-head .pf-tabs { order: 3; flex: 1 0 100%; margin: 0; }
+.pf-library-head .pf-library-close { flex: none; margin-left: auto; }
+.pf-library-head h3 { flex: 1 1 auto; min-width: 0; }
+
+/* The gear menu is taller than the card, so the card can't clip its children:
+   the rounded corners are applied to the banner and the wrapper layer instead
+   (panel radius minus its 3px border). */
+#profileOverlayPanel { overflow: visible; }
+#profileOverlayPanel .profile-banner { border-radius: 19px 15px 0 0; }
+.pf-wrapper { border-radius: 19px 15px 21px 13px; }
+.pf-gear-menu { max-height: 70vh; overflow-y: auto; z-index: 5; }
+#profileOverlayPanel { z-index: 10; }   /* above the Save button so the tall gear menu never slides under it */

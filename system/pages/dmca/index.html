@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png" />
+<title>DMCA · WannaSmile4Evr</title>
+
+<style>
+/* Same family as the Store and Settings pages: tilted panels with offset
+   accent shadows, polka dots, pill buttons, all coloured by the active
+   theme (themify.js). */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+a { color: inherit; }
+.wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.35deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: clamp(18px, 2.6vh, 26px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.panel p { font-size: 0.85rem; line-height: 1.7; }
+.panel p + p { margin-top: 10px; }
+
+.tip {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+/* ── The three rules ── */
+.rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.rule {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 14px 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.rule:nth-child(odd):hover  { transform: translateY(-4px) rotate(-1.2deg); border-color: var(--accent-color, #f44); }
+.rule:nth-child(even):hover { transform: translateY(-4px) rotate(1.2deg); border-color: var(--accent-color, #f44); }
+.rule-number {
+  position: absolute;
+  top: -14px;
+  left: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(-8deg);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.rule h3 { font-size: 0.95rem; line-height: 1.3; }
+.rule p { font-size: 0.8rem; line-height: 1.6; opacity: 0.88; }
+
+/* ── Filing ── */
+.agree {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.agree:hover, .agree:has(input:checked) { border-color: var(--accent-color, #f44); }
+.agree input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent-color, #f44); cursor: pointer; }
+
+.btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.85rem monospace;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.15s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px) rotate(-1deg); }
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,0.45); }
+.btn:disabled { background: transparent; color: var(--url-color, #fff); border-style: dashed; opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+.btn:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+@media (max-width: 600px) {
+  .title { text-align: left; }
+  .panel:nth-of-type(even) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rule { animation: none; }
+  .rule:hover, .btn:hover:not(:disabled) { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>DMCA Policy</h1>
+      <p class="tagline">How copyright takedown requests are handled.</p>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="aboutTitle">
+    <h2 id="aboutTitle"><span class="emoji" aria-hidden="true">©️</span>Copyright on WannaSmile4Evr</h2>
+    <p>WannaSmile4Evr hosts and links to third-party web content. If you believe something here infringes your copyright, you can ask for it to be removed under the Digital Millennium Copyright Act (DMCA).</p>
+    <p>A valid notice has to meet the three requirements below. They follow the notice-and-takedown standard in <a href="https://www.copyright.gov/dmca/" target="_blank" rel="noopener noreferrer">17 U.S.C. §512</a>, the same rule every service provider (site host, search engine, ISP) works under.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="rulesTitle">
+    <h2 id="rulesTitle"><span class="emoji" aria-hidden="true">📋</span>The 3 rules of a DMCA notice</h2>
+    <div class="rules">
+      <article class="rule" style="--i: 0">
+        <span class="rule-number" aria-hidden="true">1</span>
+        <h3>Identify the copyrighted work</h3>
+        <p>Name the specific work you own the rights to: the title, its assets, or the content you say was used without permission. Vague claims ("something on this site") can't be acted on.</p>
+      </article>
+      <article class="rule" style="--i: 1">
+        <span class="rule-number" aria-hidden="true">2</span>
+        <h3>Identify the material and where it is</h3>
+        <p>Give the exact page or asset URL on this site where the material appears, so it can be found and reviewed.</p>
+      </article>
+      <article class="rule" style="--i: 2">
+        <span class="rule-number" aria-hidden="true">3</span>
+        <h3>Contact details and a good-faith statement</h3>
+        <p>Include your name and a way to reach you, plus a statement that you believe in good faith the use is unauthorized and that your information is accurate, under penalty of perjury.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="fileTitle">
+    <h2 id="fileTitle"><span class="emoji" aria-hidden="true">📨</span>File a takedown request</h2>
+    <label class="agree">
+      <input type="checkbox" id="dmcaAgree" />
+      <span>I confirm the three points above are true and accurate, and that I am the copyright owner (or authorized to act on their behalf) for the specific work I'm reporting.</span>
+    </label>
+    <button type="button" id="dmcaFileBtn" class="btn" disabled>Continue to file a takedown request</button>
+    <p class="tip">Filing opens a new issue on the site's <a href="https://github.com/wannasmile4evr/wannasmile4evr.github.io" target="_blank" rel="noopener noreferrer">GitHub repository</a>, pre-filled with the DMCA template. Fill in the asset, the work it infringes, and your contact details there.</p>
+  </section>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+<script>
+"use strict";
+(() => {
+  const REPO   = "https://github.com/wannasmile4evr/wannasmile4evr.github.io";
+  const agree  = document.getElementById("dmcaAgree");
+  const fileBtn = document.getElementById("dmcaFileBtn");
+
+  agree.addEventListener("change", () => { fileBtn.disabled = !agree.checked; });
+
+  fileBtn.addEventListener("click", () => {
+    if (fileBtn.disabled) return;
+    const title = "DMCA Takedown Request";
+    const body = [
+      "**Copyrighted work:** (name the work you own the rights to)",
+      "",
+      "**Infringing material location:** (exact page/asset URL on this site)",
+      "",
+      "**Your name:**",
+      "**Your contact info (email):**",
+      "",
+      "I have a good-faith belief that the use described above is not authorized by the",
+      "copyright owner, its agent, or the law, and the information in this notice is",
+      "accurate. Under penalty of perjury, I state that I am the copyright owner or am",
+      "authorized to act on the copyright owner's behalf.",
+    ].join("\n");
+    const issueUrl = `${REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=dmca`;
+    window.open(issueUrl, "_blank", "noopener,noreferrer");
+  });
+})();
+</script>
+</body>
+</html>

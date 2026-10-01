@@ -1,0 +1,128 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+::selection {
+  background: transparent;
+}
+::-moz-selection {
+  background: transparent;
+}
+body {
+  background: url("../../assets/media/images/pages/release/releaseBg.png") center / cover no-repeat fixed;
+  font-family: monospace;
+  color: #333;
+  line-height: 1.6;
+}
+header {
+  width: 100%;
+  height: 150px;
+  background: url("../../assets/media/images/pages/release/releaseHeader.png") center / 100% 100% no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+header img {
+  width: 50%;
+  height: 50%;
+  object-fit: contain;
+}
+
+#headerProfile {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+  z-index: 5;
+}
+
+#headerProfile:hover {
+  transform: scale(1.1);
+}
+
+#headerProfile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.container {
+  max-width: 900px;
+  margin: 2rem auto;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  position: relative;
+}
+
+.banner {
+  width: 100%;
+  height: 250px;
+}
+
+.banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.asset-card {
+  padding: 1.5rem;
+}
+
+.asset-card h2 {
+  color: #ff6f61;
+  margin-bottom: 0.5rem;
+}
+
+.asset-card ul {
+  padding-left: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.download-btn,
+.support-btn {
+  padding: 0.6rem 1.2rem;
+  background: #ff6f61;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.download-btn:hover,
+.support-btn:hover {
+  background: #e65a4f;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: #777;
+}
+
+.contributors {
+  display: grid;
+  grid-template-columns: repeat(6, auto);
+  justify-content: center;
+  gap: 5px;
+  padding: 20px 0;
+}
+
+.contributors img {
+  width: 60px;
+  height: auto;
+  border-radius: 50%;
+  border: none;
+  display: block;
+}

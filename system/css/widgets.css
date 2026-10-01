@@ -1,0 +1,129 @@
+
+:root {
+  --widget-size:       55px;
+  --panel-radius:      12px;
+  --ws-widget-bg:      #ff5a00;
+  --ws-widget-shadow1: rgba(255,90,0,0.65);
+  --ws-widget-shadow2: rgba(255,90,0,0.3);
+}
+
+#wsWidgetBubble {
+  position: fixed; right: 24px; bottom: 24px;
+  width: var(--widget-size); height: var(--widget-size);
+  border-radius: 50%; cursor: grab; z-index: 99997; user-select: none;
+  box-shadow: 0 0 8px var(--ws-widget-shadow1), 0 0 18px var(--ws-widget-shadow2);
+  border: none; background: var(--ws-widget-bg); padding: 0;
+  display: none; align-items: center; justify-content: center;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+#wsWidgetBubble.visible { display: flex; }
+#wsWidgetBubble:active { cursor: grabbing; }
+
+#wsWidgetIcon {
+  width: 33px; height: 33px; display: block;
+  object-fit: contain; pointer-events: none; flex-shrink: 0;
+}
+
+#wsWidgetPanel {
+  position: fixed;
+  width: 380px; height: 520px;
+  border-radius: var(--panel-radius);
+  overflow: visible; display: none; flex-direction: column;
+  box-shadow: 0 14px 40px rgba(0,0,0,.22); z-index: 99999;
+  min-width: 260px; min-height: 320px; max-width: 90vw; max-height: 85vh;
+}
+
+#wsWidgetPanel.ss-fullscreen {
+  position: fixed !important;
+  top: 0 !important; left: 0 !important;
+  right: 0 !important; bottom: 0 !important;
+  width: 100vw !important; height: 100vh !important;
+  max-width: 100vw !important; max-height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+#wsWidgetFrameWrap {
+  width: 100%; height: 100%; position: relative;
+  border-radius: var(--panel-radius); overflow: hidden; overscroll-behavior: contain;
+}
+#wsWidgetPanel.ss-fullscreen #wsWidgetFrameWrap { border-radius: 0; }
+.ws-widget-iframe { width: 100%; height: 100%; border: none; display: block; }
+
+#wsWidgetBtns {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; gap: 5px; z-index: 10; pointer-events: all;
+  transition: opacity 0.25s, transform 0.25s;
+}
+.ss-panel-btn {
+  width: 26px; height: 26px; border: none; border-radius: 7px;
+  cursor: pointer; font-size: 13px; font-weight: bold; line-height: 1;
+  background: rgba(30,30,30,.75); color: #fff;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; transition: background 0.15s;
+}
+.ss-panel-btn:hover { background: rgba(60,60,60,.92); }
+
+#wsWidgetResizeHandle {
+  position: absolute;
+  bottom: -1px;
+  width: 20px; height: 20px;
+  z-index: 10;
+
+  right: -1px; left: auto;
+  cursor: se-resize;
+  border-radius: 0 0 var(--panel-radius) 0;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px)  3px  3px / 5px 5px,
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px)  9px  9px / 5px 5px,
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px) 15px 15px / 5px 5px;
+  background-repeat: no-repeat;
+  transition: border-radius 0.15s;
+}
+
+#wsWidgetResizeHandle[data-side="left"] {
+  right: auto; left: -1px;
+  cursor: sw-resize;
+  border-radius: 0 0 0 var(--panel-radius);
+  background:
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px) 15px  3px / 5px 5px,
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px)  9px  9px / 5px 5px,
+    radial-gradient(circle, rgba(255,255,255,.65) 1.5px, transparent 1.5px)  3px 15px / 5px 5px;
+  background-repeat: no-repeat;
+}
+
+#wsWidgetPanel.ss-fullscreen #wsWidgetResizeHandle { display: none; }
+
+.ws-widget-carousel-hint {
+  position: fixed;
+  right: 24px;
+  bottom: calc(24px + var(--widget-size) + 10px);
+  z-index: 99998;
+  background: rgba(20,20,20,.85);
+  color: #fff;
+  font-family: monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  white-space: nowrap;
+}
+.ws-widget-carousel-hint.show { opacity: 1; }
+
+@media (max-width: 480px) {
+  #wsWidgetPanel {
+    width: calc(100vw - 24px) !important;
+    height: 70vh !important;
+  }
+}
+
+/* "\" (widgets.js): widgets hidden, not closed. !important beats the
+   inline display widgets.js sets on the panel. */
+html.ws-widgets-hidden #wsWidgetBubble,
+html.ws-widgets-hidden #wsWidgetPanel,
+html.ws-widgets-hidden .ws-widget-fs-btns,
+html.ws-widgets-hidden .ws-widget-carousel-hint {
+  display: none !important;
+}

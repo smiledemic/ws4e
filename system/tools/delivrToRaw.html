@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>jsDelivr → raw.githubusercontent Converter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background: #f5f5f5;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .output {
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #ccc;
+      word-break: break-all;
+    }
+    .preview {
+      margin-top: 15px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+    img {
+      max-width: 100%;
+    }
+    iframe {
+      width: 100%;
+      height: 300px;
+      border: none;
+    }
+</style>
+</head>
+<body>
+
+  <h2>jsDelivr → raw.githubusercontent Converter</h2>
+
+  <textarea id="inputUrl" rows="4" placeholder="Paste jsDelivr URL or HTML (e.g. &lt;img src='...'&gt;)"></textarea>
+  <button onclick="convert()">Convert</button>
+
+  <h3>Output:</h3>
+  <div id="output" class="output"></div>
+
+  <h3>Preview:</h3>
+  <div id="preview" class="preview"></div>
+
+  <script>
+    function extractUrl(input) {
+
+      const match = input.match(/(?:src|href)=["']([^"']+)["']/i);
+      return match ? match[1] : input;
+    }
+
+    function convert() {
+      let input = document.getElementById("inputUrl").value.trim();
+      input = extractUrl(input);
+
+      let output = "";
+
+      const ghMatch = input.match(/cdn\.jsdelivr\.net\/gh\/([^\/]+)\/([^@]+)@([^\/]+)\/(.+)/);
+
+      if (ghMatch) {
+        const user = ghMatch[1];
+        const repo = ghMatch[2];
+        const branch = ghMatch[3];
+        const path = ghMatch[4];
+
+        output = `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${path}`;
+      }
+      else if (input.includes("cdn.jsdelivr.net/npm/")) {
+        output = "⚠️ npm URLs cannot be directly converted to raw.githubusercontent.\nFind the GitHub repo instead.";
+      }
+      else {
+        output = "❌ Invalid or unsupported jsDelivr URL.";
+      }
+
+      document.getElementById("output").innerText = output;
+      showPreview(output);
+    }
+
+    function showPreview(url) {
+      const preview = document.getElementById("preview");
+      preview.innerHTML = "";
+
+      if (!url.startsWith("http")) return;
+
+      const img = document.createElement("img");
+      img.src = url;
+
+      img.onload = () => {
+        preview.innerHTML = "";
+        preview.appendChild(img);
+      };
+
+      img.onerror = () => {
+
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        preview.appendChild(iframe);
+      };
+    }
+</script>
+
+</body>
+</html>

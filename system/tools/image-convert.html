@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../assets/media/favicons/favicon.png" />
+<title>Image Converter · WannaSmile4Evr Tools</title>
+
+<!-- JSZip: builds "Download all" in the browser. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+/* Same family as Asset Images / the store: tilted panels, offset accent
+   shadows, polka dots, pill buttons, coloured by the active theme. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff); text-decoration: none; font-weight: bold;
+  padding: 7px 14px; border: 2px solid rgba(255,255,255,0.35); border-radius: 999px; background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+h1 { font-size: clamp(24px, 4vh, 40px); transform: rotate(-2deg); text-shadow: 3px 3px 0 var(--accent-color, #f44); }
+.tag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent-color, #f44); color: #fff; font-size: 0.45em; vertical-align: middle; transform: rotate(3deg); text-shadow: none; }
+
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.3deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 { display: inline-block; font-size: clamp(17px, 2.4vh, 24px); margin-bottom: 12px; transform: rotate(-1.5deg); text-shadow: 2px 2px 0 var(--accent-color, #f44); }
+.muted { opacity: 0.8; font-size: 0.85rem; line-height: 1.6; }
+.muted code { background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 5px; }
+
+/* Drop zone */
+.drop {
+  position: relative; display: grid; place-items: center; gap: 6px;
+  min-height: 150px; padding: 22px; margin-top: 14px; text-align: center;
+  border: 3px dashed rgba(255,255,255,0.3); border-radius: 18px 22px 16px 24px;
+  background: rgba(255,255,255,0.04); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.drop:hover, .drop.over { border-color: var(--accent-color, #f44); background: rgba(255,255,255,0.08); }
+.drop.over { transform: rotate(-0.6deg) scale(1.01); }
+.drop:focus-within { border-color: var(--accent-color, #f44); }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop b { font-size: 1.1rem; }
+
+/* Options */
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 18px; margin-top: 16px; }
+.opt { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+.opt > span { font-weight: bold; }
+.opt small { opacity: 0.7; font-size: 0.75rem; line-height: 1.4; }
+select, input[type=number], input[type=color] {
+  padding: 7px 10px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.08); color: inherit; font: 0.9rem monospace;
+}
+select option { background: #222; color: #fff; }
+input[type=color] { padding: 2px; height: 36px; width: 100%; cursor: pointer; }
+select:focus, input:focus-visible { outline: none; border-color: var(--accent-color, #f44); }
+input[type=range] { accent-color: var(--accent-color, #f44); width: 100%; }
+.opt[aria-disabled="true"] { opacity: 0.4; }
+.checks { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 16px; }
+label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; }
+label.check input { accent-color: var(--accent-color, #f44); width: 16px; height: 16px; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+.btn {
+  padding: 10px 18px; border-radius: 999px; border: 2px solid var(--accent-color, #f44);
+  background: transparent; color: var(--url-color, #fff); font: bold 0.9rem monospace; cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44); transition: transform 0.12s, box-shadow 0.12s;
+  text-decoration: none; display: inline-block;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+.btn:focus-visible { outline: 3px solid var(--url-color, #fff); outline-offset: 2px; }
+.btn.primary { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.45); }
+.btn.small { padding: 6px 12px; font-size: 0.8rem; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.status { font-size: 0.85rem; min-height: 1.3em; opacity: 0.9; }
+
+/* Results */
+.list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.item {
+  display: grid; grid-template-columns: 72px 1fr auto; align-items: center; gap: 14px;
+  padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12);
+}
+.item .thumb {
+  width: 72px; height: 72px; border-radius: 10px; object-fit: contain;
+  background: repeating-conic-gradient(rgba(255,255,255,0.14) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+}
+.item .thumb.px { image-rendering: pixelated; }
+.item .name { font-weight: bold; word-break: break-all; }
+.item .meta { font-size: 0.78rem; opacity: 0.8; margin-top: 4px; line-height: 1.5; }
+.item .meta .down { color: #7cff6b; } .item .meta .up { color: #ffb36b; }
+.item .err { color: #ff8a8a; font-size: 0.8rem; margin-top: 4px; }
+.item .x { background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; font-size: 1rem; padding: 4px; }
+.item .x:hover { opacity: 1; color: var(--accent-color, #f44); }
+.item .acts { display: flex; align-items: center; gap: 6px; }
+.empty { padding: 14px; border: 2px dashed rgba(255,255,255,0.25); border-radius: 12px; opacity: 0.8; font-size: 0.85rem; }
+@media (max-width: 560px) {
+  .item { grid-template-columns: 56px 1fr; }
+  .item .thumb { width: 56px; height: 56px; }
+  .item .acts { grid-column: 1 / -1; justify-content: flex-end; }
+}
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .drop, .back { transition: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html">← Back to WannaSmile</a>
+    <h1>Image Converter <span class="tag">tool</span></h1>
+  </div>
+
+  <section class="panel">
+    <h2>Pick your images</h2>
+    <p class="muted">Converts right here in your browser, nothing gets uploaded. Reads anything your browser can open
+      (PNG, JPEG, WebP, GIF, AVIF, BMP, ICO, SVG). Animated GIFs and WebPs keep only their first frame.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="fileInput" accept="image/*,.ico,.svg" multiple />
+      <b>Drop images here or click to pick</b>
+      <span class="muted">You can also paste one with Ctrl+V</span>
+    </label>
+  </section>
+
+  <section class="panel">
+    <h2>Convert to</h2>
+    <div class="opts">
+      <label class="opt">
+        <span>Format</span>
+        <select id="format">
+          <option value="image/png">PNG (lossless)</option>
+          <option value="image/webp">WebP</option>
+          <option value="image/jpeg">JPEG</option>
+          <option value="image/avif">AVIF</option>
+          <option value="image/x-icon">ICO (favicon)</option>
+        </select>
+        <small id="formatNote"></small>
+      </label>
+      <label class="opt" id="qualityOpt">
+        <span>Quality: <output id="qualityOut">90</output>%</span>
+        <input type="range" id="quality" min="10" max="100" value="90" />
+        <small>Lower is smaller. Only JPEG, WebP and AVIF use it.</small>
+      </label>
+      <label class="opt">
+        <span>Largest side (px)</span>
+        <input type="number" id="maxSize" min="0" max="8192" step="1" placeholder="Keep original" />
+        <small>Blank keeps the original size. Smaller images are never enlarged.</small>
+      </label>
+      <label class="opt" id="bgOpt">
+        <span>Background for see-through parts</span>
+        <input type="color" id="bg" value="#ffffff" />
+        <small>JPEG can't be see-through, so transparent areas get this colour.</small>
+      </label>
+    </div>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="pixelated" /> Pixel art (sharp edges when resizing)</label>
+      <label class="check"><input type="checkbox" id="iconNames" /> Save as <code>&lt;name&gt;/icon.&lt;ext&gt;</code> (for iconsN staging)</label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="controls" style="margin-top:0; justify-content: space-between;">
+      <h2 style="margin-bottom:0">Converted</h2>
+      <div class="controls" style="margin-top:0">
+        <button type="button" class="btn" id="clearBtn" disabled>Clear all</button>
+        <button type="button" class="btn primary" id="zipBtn" disabled>Download all (.zip)</button>
+      </div>
+    </div>
+    <p class="status" id="status" role="status"></p>
+    <div class="list" id="list"><p class="empty">Nothing yet. Pick some images above and they'll show up here, converted.</p></div>
+  </section>
+</div>
+
+<script src="../js/endpoints.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/ticket.js"></script>
+<script src="../js/themify.js"></script>
+<script>
+"use strict";
+// ── Image converter ────────────────────────────────────────────────────
+// Everything runs in the browser: each file is decoded by an <img>, drawn
+// on a <canvas> (resized if asked) and re-encoded with canvas.toBlob().
+// ICO has no canvas encoder, so it's a PNG wrapped in a 22-byte ICO
+// header (every browser and Windows reads PNG-in-ICO). Changing any
+// option re-converts everything from the originals.
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const EXT = { "image/png": "png", "image/webp": "webp", "image/jpeg": "jpg", "image/avif": "avif", "image/x-icon": "ico" };
+  const LOSSY = new Set(["image/jpeg", "image/webp", "image/avif"]);
+  const ICO_MAX = 256;
+
+  const items = [];     // { id, file, img, out: { blob, url, w, h } | null, error }
+  let nextId = 0;
+  let runToken = 0;
+
+  const fmtSize = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(2)} MB`;
+  const baseName = (name) => (name || "image").replace(/\.[^.]+$/, "") || "image";
+  const typeLabel = (t) => (t || "unknown").replace(/^image\//, "").replace("x-icon", "ico").replace("vnd.microsoft.icon", "ico").replace("svg+xml", "svg").toUpperCase();
+
+  const opts = () => ({
+    type:      $("format").value,
+    quality:   +$("quality").value / 100,
+    maxSize:   Math.max(0, parseInt($("maxSize").value, 10) || 0),
+    bg:        $("bg").value,
+    pixelated: $("pixelated").checked,
+    iconNames: $("iconNames").checked,
+  });
+
+  // ── Which formats this browser can actually write ──
+  // Browsers that can't encode a type quietly hand back a PNG instead,
+  // so test once and grey out what doesn't work.
+  const canEncode = (type) => new Promise((res) => {
+    const c = document.createElement("canvas"); c.width = c.height = 2;
+    c.toBlob((b) => res(!!b && b.type === type), type, 0.8);
+  });
+  const encodable = {};
+  const formatsReady = Promise.all(["image/webp", "image/avif", "image/jpeg"].map(async (t) => {
+    encodable[t] = await canEncode(t);
+    if (!encodable[t]) {
+      const o = $("format").querySelector(`option[value="${t}"]`);
+      o.disabled = true;
+      o.textContent += " (not supported in this browser)";
+    }
+  }));
+
+  function syncOptionUI() {
+    const { type } = opts();
+    const lossy = LOSSY.has(type);
+    $("qualityOpt").setAttribute("aria-disabled", String(!lossy));
+    $("quality").disabled = !lossy;
+    $("bgOpt").hidden = type !== "image/jpeg";
+    $("formatNote").textContent = type === "image/x-icon"
+      ? `Icons are capped at ${ICO_MAX}×${ICO_MAX}, the largest size ICO allows.`
+      : type === "image/png" ? "Lossless: same pixels, usually a bigger file than WebP or JPEG." : "";
+  }
+
+  // ── Decoding ──
+  function decode(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        // Some SVGs have no size of their own; give them one.
+        if (!img.naturalWidth || !img.naturalHeight) { img.width = img.height = 512; }
+        resolve({ img, url });
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("This browser can't open that file as an image.")); };
+      img.src = url;
+    });
+  }
+
+  // ── Encoding ──
+  function toBlob(canvas, type, quality) {
+    return new Promise((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(new Error("The browser couldn't encode this image.")), type, quality));
+  }
+
+  function wrapIco(pngBuf, w, h) {
+    const head = new DataView(new ArrayBuffer(22));
+    head.setUint16(0, 0, true);                 // reserved
+    head.setUint16(2, 1, true);                 // type: icon
+    head.setUint16(4, 1, true);                 // one image
+    head.setUint8(6, w >= 256 ? 0 : w);         // 0 means 256
+    head.setUint8(7, h >= 256 ? 0 : h);
+    head.setUint8(8, 0);                        // no palette
+    head.setUint8(9, 0);
+    head.setUint16(10, 1, true);                // colour planes
+    head.setUint16(12, 32, true);               // bits per pixel
+    head.setUint32(14, pngBuf.byteLength, true);
+    head.setUint32(18, 22, true);               // image data starts after the header
+    return new Blob([head.buffer, pngBuf], { type: "image/x-icon" });
+  }
+
+  async function convert(item, o) {
+    const img = item.img;
+    const sw = img.naturalWidth || img.width, sh = img.naturalHeight || img.height;
+    let limit = o.maxSize;
+    if (o.type === "image/x-icon") limit = limit ? Math.min(limit, ICO_MAX) : ICO_MAX;
+    const scale = limit ? Math.min(1, limit / Math.max(sw, sh)) : 1;
+    const w = Math.max(1, Math.round(sw * scale)), h = Math.max(1, Math.round(sh * scale));
+
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = !o.pixelated;
+    ctx.imageSmoothingQuality = "high";
+    if (o.type === "image/jpeg") { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, w, h); }
+    ctx.drawImage(img, 0, 0, w, h);
+
+    let blob;
+    if (o.type === "image/x-icon") {
+      const png = await toBlob(c, "image/png");
+      blob = wrapIco(await png.arrayBuffer(), w, h);
+    } else {
+      blob = await toBlob(c, o.type, LOSSY.has(o.type) ? o.quality : undefined);
+      if (blob.type !== o.type) throw new Error(`This browser can't write ${typeLabel(o.type)}. Pick another format.`);
+    }
+    return { blob, url: URL.createObjectURL(blob), w, h };
+  }
+
+  function outName(item, o) {
+    const ext = EXT[o.type];
+    return o.iconNames ? `${baseName(item.file.name)}/icon.${ext}` : `${baseName(item.file.name)}.${ext}`;
+  }
+
+  // ── Rendering ──
+  function render() {
+    const list = $("list");
+    const o = opts();
+    $("clearBtn").disabled = !items.length;
+    $("zipBtn").disabled = !items.some((it) => it.out);
+    if (!items.length) {
+      list.innerHTML = `<p class="empty">Nothing yet. Pick some images above and they'll show up here, converted.</p>`;
+      return;
+    }
+    list.replaceChildren(...items.map((it) => {
+      const row = document.createElement("div");
+      row.className = "item";
+      const thumb = document.createElement("img");
+      thumb.className = "thumb" + (o.pixelated ? " px" : "");
+      thumb.alt = "";
+      thumb.src = it.out ? it.out.url : it.srcUrl;
+
+      const info = document.createElement("div");
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = it.out ? outName(it, o) : it.file.name;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const sw = it.img.naturalWidth || it.img.width, sh = it.img.naturalHeight || it.img.height;
+      if (it.out) {
+        const diff = it.out.blob.size - it.file.size;
+        const pct = it.file.size ? Math.round((diff / it.file.size) * 100) : 0;
+        meta.innerHTML = `${typeLabel(it.file.type)} ${sw}×${sh}, ${fmtSize(it.file.size)} → ` +
+          `${typeLabel(o.type)} ${it.out.w}×${it.out.h}, ${fmtSize(it.out.blob.size)} ` +
+          `<span class="${diff <= 0 ? "down" : "up"}">(${pct > 0 ? "+" : ""}${pct}%)</span>`;
+      } else if (!it.error) {
+        meta.textContent = "Converting…";
+      }
+      info.append(name, meta);
+      if (it.error) {
+        const err = document.createElement("div");
+        err.className = "err";
+        err.textContent = it.error;
+        info.append(err);
+      }
+
+      const acts = document.createElement("div");
+      acts.className = "acts";
+      if (it.out) {
+        const a = document.createElement("a");
+        a.className = "btn small";
+        a.href = it.out.url;
+        a.download = outName(it, o).replace("/", "-");   // a single file can't have a folder
+        a.textContent = "Download";
+        acts.append(a);
+      }
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "x"; x.title = "Remove"; x.setAttribute("aria-label", `Remove ${it.file.name}`);
+      x.textContent = "✕";
+      x.addEventListener("click", () => remove(it.id));
+      acts.append(x);
+
+      row.append(thumb, info, acts);
+      return row;
+    }));
+  }
+
+  function setStatus(text) { $("status").textContent = text; }
+
+  async function convertAll() {
+    await formatsReady;
+    const token = ++runToken;
+    const o = opts();
+    items.forEach((it) => { if (it.out) URL.revokeObjectURL(it.out.url); it.out = null; it.error = ""; });
+    render();
+    if (!items.length) { setStatus(""); return; }
+    let done = 0;
+    for (const it of items) {
+      try {
+        const out = await convert(it, o);
+        if (token !== runToken) { URL.revokeObjectURL(out.url); return; }   // options changed mid-run
+        it.out = out;
+      } catch (e) {
+        if (token !== runToken) return;
+        it.error = e.message;
+      }
+      done++;
+      setStatus(`Converted ${done} of ${items.length}…`);
+    }
+    const failed = items.filter((it) => it.error).length;
+    setStatus(failed ? `Done. ${failed} couldn't be converted, see below.` : `Done. ${items.length} image${items.length === 1 ? "" : "s"} converted to ${typeLabel(o.type)}.`);
+    render();
+  }
+
+  async function addFiles(files) {
+    const imgs = [...files].filter((f) => f && (f.type.startsWith("image/") || /\.(ico|svg)$/i.test(f.name)));
+    if (!imgs.length) { setStatus("Those files aren't images. Pick PNG, JPEG, WebP, GIF, AVIF, BMP, ICO or SVG files."); return; }
+    setStatus("Opening…");
+    for (const file of imgs) {
+      try {
+        const { img, url } = await decode(file);
+        items.push({ id: nextId++, file, img, srcUrl: url, out: null, error: "" });
+      } catch (e) {
+        setStatus(`${file.name}: ${e.message}`);
+      }
+    }
+    convertAll();
+  }
+
+  function remove(id) {
+    const i = items.findIndex((it) => it.id === id);
+    if (i < 0) return;
+    const [it] = items.splice(i, 1);
+    URL.revokeObjectURL(it.srcUrl);
+    if (it.out) URL.revokeObjectURL(it.out.url);
+    render();
+    if (!items.length) setStatus("");
+  }
+
+  async function downloadZip() {
+    if (typeof JSZip === "undefined") { setStatus("The zip library didn't load. Check your connection, or download the files one by one."); return; }
+    const o = opts();
+    const zip = new JSZip();
+    const used = new Set();
+    for (const it of items) {
+      if (!it.out) continue;
+      let name = outName(it, o), n = 2;
+      while (used.has(name.toLowerCase())) {                      // same name twice: add -2, -3…
+        name = o.iconNames ? outName(it, o).replace("/", `-${n}/`) : outName(it, o).replace(/(\.[^.]+)$/, `-${n}$1`);
+        n++;
+      }
+      used.add(name.toLowerCase());
+      zip.file(name, it.out.blob);
+    }
+    setStatus("Zipping…");
+    const blob = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `converted-${EXT[o.type]}.zip`;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    setStatus(`Downloaded ${used.size} file${used.size === 1 ? "" : "s"} as a zip.`);
+  }
+
+  // ── Wiring ──
+  const drop = $("drop");
+  $("fileInput").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
+  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
+  document.addEventListener("paste", (e) => {
+    const files = [...(e.clipboardData?.files || [])];
+    if (files.length) { e.preventDefault(); addFiles(files); }
+  });
+
+  $("quality").addEventListener("input", () => { $("qualityOut").textContent = $("quality").value; });
+  ["format", "quality", "bg", "pixelated"].forEach((id) => $(id).addEventListener("change", () => { syncOptionUI(); convertAll(); }));
+  $("maxSize").addEventListener("change", convertAll);
+  $("iconNames").addEventListener("change", render);   // names only, no need to re-encode
+  $("clearBtn").addEventListener("click", () => { while (items.length) remove(items[0].id); });
+  $("zipBtn").addEventListener("click", downloadZip);
+
+  syncOptionUI();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GitHub Raw Link Generator</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #222;
+      border-radius: 5px;
+      max-width: 80%;
+      word-wrap: break-word;
+      text-align: center;
+    }
+    a {
+      color: #58a6ff;
+    }
+    img {
+      margin-top: 10px;
+      border: 1px solid #444;
+      max-width: 300px;
+    }
+    #copyButton {
+        margin-top: 10px;
+        background-color: #58a6ff;
+        color: #111;
+        border: none;
+        font-weight: bold;
+    }
+
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .toast {
+      background-color: #28a745;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      opacity: 0;
+      transition: opacity 0.5s, transform 0.5s;
+      transform: translateY(-20px);
+      margin-bottom: 10px;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+</style>
+</head>
+<body>
+  <h1>GitHub → Raw Link</h1>
+  <input type="text" id="ghLink" placeholder="Paste GitHub file link here">
+  <button onclick="convert()">Convert</button>
+
+  <div id="output"></div>
+
+  <div id="toast-container"></div>
+
+  <script>
+    function showToast(message, isSuccess = true) {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.classList.add('toast');
+        if (!isSuccess) {
+            toast.style.backgroundColor = '#dc3545';
+        }
+
+        toastContainer.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.remove('show');
+
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }, 3000);
+    }
+
+    function copyLink(textToCopy) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+
+            showToast("Raw link copied to clipboard!");
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+
+            showToast("Failed to copy link. Please copy it manually.", false);
+        });
+    }
+
+    function convert() {
+      const link = document.getElementById("ghLink").value.trim();
+      const output = document.getElementById("output");
+
+      if (!link.includes("github.com")) {
+        output.innerHTML = "invalid Link. Try copying the file link from your repo/fork!";
+        return;
+      }
+
+      let raw = link
+        .replace("github.com", "raw.githubusercontent.com")
+        .replace("/blob/", "/");
+
+      output.innerHTML = `
+        Raw Link: <a id="rawLinkDisplay" href="${raw}" target="_blank">${raw}</a>
+        <button id="copyButton" onclick="copyLink('${raw}')">Copy Link</button>
+        <br><br>
+        <img id="preview" src="${raw}" alt="Preview">
+        <p id="status"></p>
+      `;
+
+      const img = document.getElementById("preview");
+      const status = document.getElementById("status");
+
+      img.onerror = function() {
+        img.src = "404.png";
+        status.textContent = "Hmm, it seems this image doesn’t exist. The link was valid, but the file is empty or not found.";
+      };
+
+      copyLink(raw);
+    }
+</script>
+</body>
+</html>

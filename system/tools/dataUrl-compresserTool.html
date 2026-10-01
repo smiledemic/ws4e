@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DataURL Compressor</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080e;--surface:#0f0f1a;--panel:#141420;
+  --border:#1c1c2e;--accent:#00ff9d;--accent2:#ff3cac;
+  --text:#c0c0d0;--muted:#44445a;
+  --mono:'Share Tech Mono',monospace;--sans:'Syne',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:36px 20px 80px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,255,157,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,157,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.wrap{max-width:900px;margin:0 auto;position:relative;z-index:1}
+header{margin-bottom:44px}
+.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--accent);text-transform:uppercase;margin-bottom:8px}
+h1{font-size:clamp(1.9rem,5vw,3rem);font-weight:800;line-height:1.05;color:#fff;letter-spacing:-.02em}
+h1 span{color:var(--accent)}
+.subtitle{margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.8;max-width:580px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:18px}
+.card-label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(0,255,157,.03)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:26px;margin-bottom:6px}
+.drop-label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+@media(max-width:600px){.controls{grid-template-columns:1fr}}
+.ctrl{display:flex;flex-direction:column;gap:6px}
+.ctrl label{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.ctrl-val{font-family:var(--mono);font-size:12px;color:var(--accent);margin-left:6px}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--border);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+select{background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-family:var(--mono);font-size:12px;width:100%}
+select:focus{outline:none;border-color:var(--accent)}
+.toggle-row{display:flex;gap:14px;margin-top:14px;flex-wrap:wrap}
+.toggle{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text);cursor:pointer}
+.toggle input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button{font-family:var(--sans);font-weight:700;font-size:13px;padding:10px 22px;border-radius:5px;border:none;cursor:pointer;transition:.15s;letter-spacing:.03em}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#00e88c;transform:translateY(-1px)}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-secondary:hover{border-color:var(--muted)}
+.btn-danger{background:var(--accent2);color:#fff}
+.btn-danger:hover{background:#ff1fa0;transform:translateY(-1px)}
+.preview-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+@media(max-width:560px){.preview-row{grid-template-columns:1fr}}
+.preview-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.preview-box img,.preview-box canvas{max-width:100%;max-height:180px;border-radius:4px;display:block;margin:0 auto 10px}
+.preview-title{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.preview-info{font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.7}
+.hi{color:var(--accent)}
+.warn{color:var(--accent2)}
+textarea{width:100%;background:var(--bg);color:var(--accent2);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:var(--mono);font-size:11px;line-height:1.5;resize:vertical;transition:border-color .2s;min-height:80px}
+textarea:focus{outline:none;border-color:var(--accent)}
+textarea.in-area{color:var(--accent);min-height:100px}
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:18px}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.stat-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:5px}
+.stat-value{font-family:var(--mono);font-size:18px;color:#fff;font-weight:700}
+.stat-value.good{color:var(--accent)}
+.stat-value.bad{color:var(--accent2)}
+.progress-wrap{margin-top:14px;display:none}
+.progress-label{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:6px}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:2px}
+.toast{position:fixed;bottom:28px;right:28px;background:var(--accent);color:#000;font-family:var(--mono);font-size:12px;padding:10px 18px;border-radius:5px;transform:translateY(70px);opacity:0;transition:.25s;z-index:100;font-weight:700}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">data url toolkit v2</div>
+  <h1>Deep Image <span>Compressor</span></h1>
+  <p class="subtitle">
+    Resize → reformat → DEFLATE → base64url.<br>
+    Typical reduction: <strong style="color:var(--accent)">70–95%</strong> vs raw base64. Full round-trip decode.
+  </p>
+</header>
+
+<div class="card">
+  <div class="card-label">01 — Source Image</div>
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="drop-icon">⬆</div>
+    <div class="drop-label">Drop image here or click to browse</div>
+  </div>
+  <div style="margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--muted)">— or paste base64 data URL below —</div>
+  <textarea id="inputData" class="in-area" style="margin-top:8px" placeholder="data:image/png;base64,iVBORw0KGgo..."></textarea>
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="clearAll()">Clear</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-label">02 — Compression Pipeline</div>
+  <div class="controls">
+    <div class="ctrl">
+      <label>Max Dimension <span class="ctrl-val" id="dimVal">128px</span></label>
+      <input type="range" id="maxDim" min="16" max="512" step="8" value="128" oninput="syncSlider('maxDim','dimVal',v=>v+'px')">
+    </div>
+    <div class="ctrl">
+      <label>JPEG/WebP Quality <span class="ctrl-val" id="qualVal">72%</span></label>
+      <input type="range" id="quality" min="10" max="100" step="1" value="72" oninput="syncSlider('quality','qualVal',v=>v+'%')">
+    </div>
+    <div class="ctrl">
+      <label>Output Format</label>
+      <select id="outFormat">
+        <option value="auto">Auto (WebP → JPEG fallback)</option>
+        <option value="image/webp">WebP (best ratio)</option>
+        <option value="image/jpeg">JPEG (lossy, small)</option>
+        <option value="image/png">PNG (lossless)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Color Palette (quantize) <span class="ctrl-val" id="colVal">off</span></label>
+      <input type="range" id="colors" min="0" max="256" step="8" value="0" oninput="syncSlider('colors','colVal',v=>+v===0?'off':v+' colors')">
+    </div>
+  </div>
+  <div class="toggle-row">
+    <label class="toggle"><input type="checkbox" id="doResize" checked> Resize to max dimension</label>
+    <label class="toggle"><input type="checkbox" id="doDeflate" checked> DEFLATE pack (CDURL2)</label>
+    <label class="toggle"><input type="checkbox" id="doSmooth" checked> Smooth downscale</label>
+  </div>
+  <div class="btn-row">
+    <button class="btn-primary" onclick="runPipeline()">▶ Compress</button>
+    <button class="btn-danger" onclick="runDecompress()">◀ Decompress Output</button>
+    <button class="btn-secondary" onclick="applyPreset('icon')">Icon preset</button>
+    <button class="btn-secondary" onclick="applyPreset('banner')">Banner preset</button>
+    <button class="btn-secondary" onclick="applyPreset('lossless')">Lossless preset</button>
+  </div>
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">Processing...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+</div>
+
+<div class="card" id="previewCard" style="display:none">
+  <div class="card-label">03 — Before / After</div>
+  <div class="preview-row">
+    <div class="preview-box">
+      <div class="preview-title">Original</div>
+      <img id="origImg" src="" alt="">
+      <div class="preview-info" id="origInfo"></div>
+    </div>
+    <div class="preview-box">
+      <div class="preview-title">Processed</div>
+      <canvas id="procCanvas"></canvas>
+      <div class="preview-info" id="procInfo"></div>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-label">Original</div><div class="stat-value" id="sOrig">—</div></div>
+    <div class="stat"><div class="stat-label">Compressed</div><div class="stat-value" id="sComp">—</div></div>
+    <div class="stat"><div class="stat-label">Reduction</div><div class="stat-value" id="sRed">—</div></div>
+    <div class="stat"><div class="stat-label">Ratio</div><div class="stat-value" id="sRatio">—</div></div>
+  </div>
+</div>
+
+<div class="card" id="outputCard" style="display:none">
+  <div class="card-label">04 — Compressed Output</div>
+  <textarea id="encodedOutput" readonly placeholder="Compressed string..."></textarea>
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="copyOutput()">Copy</button>
+    <button class="btn-secondary" onclick="downloadOutput()">Download .cdurl</button>
+  </div>
+</div>
+
+<div class="card" id="decompCard" style="display:none">
+  <div class="card-label">05 — Decompressed Result</div>
+  <div class="preview-box" style="max-width:320px">
+    <img id="decompImg" src="" alt="">
+  </div>
+  <textarea id="decompRaw" readonly style="margin-top:14px;min-height:60px;" placeholder="Recovered data URL..."></textarea>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const MIME_MAP = [
+  "data:image/png;base64,",
+  "data:image/jpeg;base64,",
+  "data:image/gif;base64,",
+  "data:image/webp;base64,",
+  "data:image/svg+xml;base64,",
+  "data:image/avif;base64,",
+  "data:image/bmp;base64,",
+];
+const PREFIX = "CDURL2:";
+
+function syncSlider(id, valId, fmt) {
+  document.getElementById(valId).textContent = fmt(document.getElementById(id).value);
+}
+
+function applyPreset(name) {
+  const P = {
+    icon:     {maxDim:128,quality:75, format:'auto',         colors:0,   resize:true,  deflate:true, smooth:true},
+    banner:   {maxDim:256,quality:70, format:'image/webp',   colors:0,   resize:true,  deflate:true, smooth:true},
+    lossless: {maxDim:256,quality:95, format:'image/png',    colors:0,   resize:true,  deflate:true, smooth:true},
+  }[name];
+  if (!P) return;
+  document.getElementById('maxDim').value = P.maxDim;
+  document.getElementById('quality').value = P.quality;
+  document.getElementById('outFormat').value = P.format;
+  document.getElementById('colors').value = P.colors;
+  document.getElementById('doResize').checked  = P.resize;
+  document.getElementById('doDeflate').checked = P.deflate;
+  document.getElementById('doSmooth').checked  = P.smooth;
+  syncSlider('maxDim','dimVal',v=>v+'px');
+  syncSlider('quality','qualVal',v=>v+'%');
+  syncSlider('colors','colVal',v=>+v===0?'off':v+' colors');
+  toast('Preset: ' + name);
+}
+
+function b64ToBytes(b64) {
+  const bin = atob(b64); const a = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) a[i]=bin.charCodeAt(i); return a;
+}
+function bytesToB64(a) {
+  let s=''; for (let i=0;i<a.length;i++) s+=String.fromCharCode(a[i]); return btoa(s);
+}
+function bytesToB64url(a) {
+  return bytesToB64(a).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlToBytes(s) {
+  s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; return b64ToBytes(s);
+}
+async function deflate(bytes) {
+  const cs=new CompressionStream('deflate');
+  const w=cs.writable.getWriter(); w.write(bytes); w.close();
+  const chunks=[]; const r=cs.readable.getReader();
+  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+  const out=new Uint8Array(chunks.reduce((n,c)=>n+c.length,0));
+  let off=0; for(const c of chunks){out.set(c,off);off+=c.length;} return out;
+}
+async function inflate(bytes) {
+  const ds=new DecompressionStream('deflate');
+  const w=ds.writable.getWriter(); w.write(bytes); w.close();
+  const chunks=[]; const r=ds.readable.getReader();
+  for(;;){const{done,value}=await r.read();if(done)break;chunks.push(value);}
+  const out=new Uint8Array(chunks.reduce((n,c)=>n+c.length,0));
+  let off=0; for(const c of chunks){out.set(c,off);off+=c.length;} return out;
+}
+
+async function encodeDataUrl(dataUrl) {
+  let mimeIdx=-1, payload=null;
+  for(let i=0;i<MIME_MAP.length;i++){
+    if(dataUrl.startsWith(MIME_MAP[i])){mimeIdx=i;payload=dataUrl.slice(MIME_MAP[i].length);break;}
+  }
+  if(mimeIdx===-1) throw new Error('Unsupported mime type.');
+  const raw=b64ToBytes(payload);
+  const comp=await deflate(raw);
+  return PREFIX+mimeIdx.toString(16)+'0'+bytesToB64url(comp);
+}
+async function decodeDataUrl(compact) {
+  if(!compact.startsWith(PREFIX)) throw new Error('Not a CDURL2 string.');
+  const body=compact.slice(PREFIX.length);
+  const mimeIdx=parseInt(body[0],16);
+  const enc=body.slice(2);
+  if(isNaN(mimeIdx)||mimeIdx>=MIME_MAP.length) throw new Error('Bad mime index.');
+  const comp=b64urlToBytes(enc);
+  const raw=await inflate(comp);
+  return MIME_MAP[mimeIdx]+bytesToB64(raw);
+}
+
+function loadImage(src){
+  return new Promise((res,rej)=>{const img=new Image();img.onload=()=>res(img);img.onerror=rej;img.src=src;});
+}
+
+function drawToCanvas(img, maxDim, smooth) {
+  let sw=img.naturalWidth, sh=img.naturalHeight, dw=sw, dh=sh;
+  if(sw>maxDim||sh>maxDim){
+    if(sw>=sh){dw=maxDim;dh=Math.round(sh*(maxDim/sw));}
+    else{dh=maxDim;dw=Math.round(sw*(maxDim/sh));}
+  }
+
+  let cur=null;
+  if(smooth&&(sw>dw*2||sh>dh*2)){
+    let tmpW=sw,tmpH=sh,src=img;
+    while(tmpW>dw*2||tmpH>dh*2){
+      const nW=Math.max(Math.floor(tmpW/2),dw), nH=Math.max(Math.floor(tmpH/2),dh);
+      const c=document.createElement('canvas'); c.width=nW; c.height=nH;
+      const x=c.getContext('2d'); x.imageSmoothingEnabled=true; x.imageSmoothingQuality='high';
+      x.drawImage(src,0,0,nW,nH); src=c; tmpW=nW; tmpH=nH;
+    }
+    cur=src;
+  }
+  const out=document.createElement('canvas'); out.width=dw; out.height=dh;
+  const ctx=out.getContext('2d'); ctx.imageSmoothingEnabled=smooth; ctx.imageSmoothingQuality='high';
+  ctx.drawImage(cur||img,0,0,dw,dh); return out;
+}
+
+function quantizeCanvas(canvas, numColors) {
+  if(!numColors||numColors<=0) return;
+  const ctx=canvas.getContext('2d');
+  const {width:W,height:H}=canvas;
+  const id=ctx.getImageData(0,0,W,H); const d=id.data; const n=W*H;
+
+  const px=[];
+  for(let i=0;i<n;i++) px.push([d[i*4],d[i*4+1],d[i*4+2]]);
+  const palette=medianCut(px,numColors);
+
+  for(let i=0;i<n;i++){
+    const r=d[i*4],g=d[i*4+1],b=d[i*4+2];
+    let best=0,bestD=Infinity;
+    for(let j=0;j<palette.length;j++){
+      const dd=(r-palette[j][0])**2+(g-palette[j][1])**2+(b-palette[j][2])**2;
+      if(dd<bestD){bestD=dd;best=j;}
+    }
+    d[i*4]=palette[best][0];d[i*4+1]=palette[best][1];d[i*4+2]=palette[best][2];
+  }
+  ctx.putImageData(id,0,0);
+}
+
+function medianCut(pixels, maxColors) {
+  function avg(bucket){
+    let r=0,g=0,b=0;
+    for(const p of bucket){r+=p[0];g+=p[1];b+=p[2];}
+    const n=bucket.length;
+    return [Math.round(r/n),Math.round(g/n),Math.round(b/n)];
+  }
+  function cut(bucket, depth){
+    if(depth===0||bucket.length<=1) return [avg(bucket)];
+    let rMin=255,rMax=0,gMin=255,gMax=0,bMin=255,bMax=0;
+    for(const [r,g,b] of bucket){
+      if(r<rMin)rMin=r;if(r>rMax)rMax=r;
+      if(g<gMin)gMin=g;if(g>gMax)gMax=g;
+      if(b<bMin)bMin=b;if(b>bMax)bMax=b;
+    }
+    const rR=rMax-rMin,gR=gMax-gMin,bR=bMax-bMin;
+    const ch=rR>=gR&&rR>=bR?0:gR>=bR?1:2;
+    bucket.sort((a,b)=>a[ch]-b[ch]);
+    const mid=Math.floor(bucket.length/2);
+    return [...cut(bucket.slice(0,mid),depth-1),...cut(bucket.slice(mid),depth-1)];
+  }
+  const depth=Math.ceil(Math.log2(Math.max(1,maxColors)));
+  return cut(pixels,depth);
+}
+
+function canvasToDataUrl(canvas, format, quality) {
+  if(format==='auto'){
+    try{const u=canvas.toDataURL('image/webp',quality/100);if(u.startsWith('data:image/webp'))return u;}catch(_){}
+    return canvas.toDataURL('image/jpeg',quality/100);
+  }
+  if(format==='image/png') return canvas.toDataURL('image/png');
+  return canvas.toDataURL(format,quality/100);
+}
+
+async function runPipeline() {
+  const raw=document.getElementById('inputData').value.trim();
+  if(!raw){toast('Load or paste an image first.','err');return;}
+
+  const maxDim  =+document.getElementById('maxDim').value;
+  const quality =+document.getElementById('quality').value;
+  const colors  =+document.getElementById('colors').value;
+  const format  =document.getElementById('outFormat').value;
+  const doResize=document.getElementById('doResize').checked;
+  const doDefl  =document.getElementById('doDeflate').checked;
+  const doSmooth=document.getElementById('doSmooth').checked;
+
+  prog(true,'Loading image…',10); await tick();
+
+  let img;
+  try{img=await loadImage(raw);}
+  catch(e){toast('Could not load image.','err');prog(false);return;}
+
+  const origW=img.naturalWidth,origH=img.naturalHeight;
+  document.getElementById('origImg').src=raw;
+  document.getElementById('origInfo').innerHTML=
+    `<span class="hi">${origW}×${origH}</span><br>${fmt(raw.length)} chars`;
+
+  prog(true,'Resizing…',30); await tick();
+  const canvas=drawToCanvas(img, doResize?maxDim:Math.max(origW,origH), doSmooth);
+
+  prog(true,'Quantizing…',50); await tick();
+  if(colors>0) quantizeCanvas(canvas,colors);
+
+  prog(true,'Encoding…',65); await tick();
+  const processedUrl=canvasToDataUrl(canvas,format,quality);
+
+  const pc=document.getElementById('procCanvas');
+  pc.width=canvas.width; pc.height=canvas.height;
+  pc.getContext('2d').drawImage(canvas,0,0);
+  const procMime=processedUrl.split(';')[0].replace('data:','');
+
+  let finalStr=processedUrl;
+  if(doDefl){
+    prog(true,'DEFLATE compressing…',80); await tick();
+    try{finalStr=await encodeDataUrl(processedUrl);}
+    catch(e){toast('DEFLATE skipped: '+e.message,'warn');}
+  }
+
+  prog(true,'Done!',100); await tick();
+
+  const oL=raw.length,fL=finalStr.length;
+  const red=((1-fL/oL)*100).toFixed(1);
+  const ratio=(oL/fL).toFixed(2);
+  const isGood=parseFloat(red)>0;
+
+  document.getElementById('procInfo').innerHTML=
+    `<span class="hi">${canvas.width}×${canvas.height}</span> · ${procMime}<br>`+
+    `<span class="${isGood?'hi':'warn'}">${red}% smaller</span><br>${fmt(fL)} chars`;
+
+  document.getElementById('sOrig').textContent=fmt(oL);
+  document.getElementById('sComp').textContent=fmt(fL);
+  const re=document.getElementById('sRed');re.textContent=red+'%';re.className='stat-value '+(isGood?'good':'bad');
+  document.getElementById('sRatio').textContent=ratio+'×';
+
+  document.getElementById('encodedOutput').value=finalStr;
+  document.getElementById('previewCard').style.display='';
+  document.getElementById('outputCard').style.display='';
+  document.getElementById('decompCard').style.display='none';
+  prog(false);
+  toast('Done! '+red+'% reduction');
+}
+
+async function runDecompress() {
+  const enc=document.getElementById('encodedOutput').value.trim();
+  if(!enc){toast('No output to decompress.','err');return;}
+  let dataUrl;
+  if(enc.startsWith(PREFIX)){
+    try{dataUrl=await decodeDataUrl(enc);}
+    catch(e){toast('Decompress error: '+e.message,'err');return;}
+  } else if(enc.startsWith('data:')){
+    dataUrl=enc;
+  } else {toast('Unrecognised format.','err');return;}
+  document.getElementById('decompImg').src=dataUrl;
+  document.getElementById('decompRaw').value=dataUrl;
+  document.getElementById('decompCard').style.display='';
+  toast('Decompressed!');
+}
+
+function prog(on,label='',pct=0){
+  document.getElementById('progressWrap').style.display=on?'':'none';
+  document.getElementById('progressLabel').textContent=label;
+  document.getElementById('progressFill').style.width=pct+'%';
+}
+function tick(){return new Promise(r=>setTimeout(r,0));}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'k';return n+'';}
+function copyOutput(){
+  const v=document.getElementById('encodedOutput').value;if(!v)return;
+  navigator.clipboard.writeText(v).catch(()=>{const t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);});
+  toast('Copied!');
+}
+function downloadOutput(){
+  const v=document.getElementById('encodedOutput').value;if(!v)return;
+  const a=document.createElement('a');a.href='data:text/plain;charset=utf-8,'+encodeURIComponent(v);a.download='compressed.cdurl';a.click();
+}
+function clearAll(){
+  ['inputData','encodedOutput','decompRaw'].forEach(id=>document.getElementById(id).value='');
+  ['previewCard','outputCard','decompCard'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('origImg').src='';
+  document.getElementById('decompImg').src='';
+}
+let toastT;
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='err'?'var(--accent2)':type==='warn'?'#f5a623':'var(--accent)';
+  el.style.color=type==='err'?'#fff':'#000';
+  el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+const FI=document.getElementById('fileInput'),DZ=document.getElementById('dropZone');
+FI.addEventListener('change',()=>{if(FI.files[0])readFile(FI.files[0]);});
+DZ.addEventListener('dragover',e=>{e.preventDefault();DZ.classList.add('over');});
+DZ.addEventListener('dragleave',()=>DZ.classList.remove('over'));
+DZ.addEventListener('drop',e=>{e.preventDefault();DZ.classList.remove('over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))readFile(f);});
+function readFile(f){const r=new FileReader();r.onload=e=>{document.getElementById('inputData').value=e.target.result;toast('Loaded — click Compress.');};r.readAsDataURL(f);}
+
+if(!window.CompressionStream){
+  document.querySelector('.card').insertAdjacentHTML('afterbegin',
+    `<div style="background:#ff3cac22;border:1px solid var(--accent2);padding:12px;border-radius:6px;font-family:var(--mono);font-size:11px;color:var(--accent2);margin-bottom:14px">⚠ CompressionStream not supported. Use Chrome 80+, Firefox 113+, or Safari 16.4+.</div>`);
+}
+</script>
+</body>
+</html>

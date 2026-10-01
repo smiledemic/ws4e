@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png" />
+<title>Credits &amp; Achievements · WannaSmile4Evr</title>
+
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/shoelace-autoloader.js"></script>
+
+<style>
+/* Same family as the site's pop-ups (tilted panels, offset accent shadows,
+   polka dots), coloured by the active theme (themify.js). */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  /* Vertical scrolling only (the tilted panels and offset shadows can poke
+     past the right edge). */
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  /* clip (unlike hidden) cuts off anything wider than the page without
+     making <body> a scroll box, so nothing can scroll it sideways. */
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 48px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); }
+h1 {
+  font-size: clamp(22px, 3.4vh, 36px);
+  transform: rotate(-1.5deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.4deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 {
+  display: inline-block;
+  font-size: clamp(17px, 2.4vh, 24px);
+  margin-bottom: 12px;
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.muted { opacity: 0.75; font-size: 0.85rem; line-height: 1.5; }
+
+/* Balance */
+.balance { display: flex; align-items: center; gap: clamp(14px, 2.6vh, 28px); flex-wrap: wrap; }
+.amount { font-size: clamp(34px, 6vh, 60px); font-weight: bold; line-height: 1; }
+.amount small { font-size: 0.35em; opacity: 0.75; margin-left: 6px; }
+
+/* Achievements */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.ach {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px;
+  border-radius: 14px;
+  border: 2px solid var(--accent-color, #f44);
+  background: rgba(255,255,255,0.05);
+}
+.ach.is-locked { border-style: dashed; border-color: rgba(255,255,255,0.3); opacity: 0.7; }
+.ach-icon {
+  flex: none; width: 46px; height: 46px; display: grid; place-items: center;
+  border-radius: 12px; font-size: 24px;
+  background: var(--accent-color, #f44); color: #fff;
+}
+.ach.is-locked .ach-icon { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); }
+.ach-name { font-weight: bold; font-size: 1rem; }
+.ach-desc { font-size: 0.8rem; opacity: 0.85; margin-top: 4px; line-height: 1.4; }
+.ach-meta { font-size: 0.75rem; margin-top: 8px; }
+.ach-meta b { color: var(--accent-color, #f44); }
+
+/* Early access */
+.unlock {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.05);
+}
+.unlock + .unlock { margin-top: 10px; }
+.unlock button {
+  padding: 7px 14px; border-radius: 999px; border: none; cursor: pointer;
+  background: var(--accent-color, #f44); color: #fff; font: bold 0.85rem monospace;
+}
+.unlock button:disabled { opacity: 0.45; cursor: default; }
+/* Tester builds (type "early access" / "tester" in the sheet; main.js
+   saves the list as ws_tester_assets). */
+.tester-head { margin: 0 0 10px; font-size: 0.85rem; opacity: 0.85; }
+.tester { justify-content: flex-start; }
+.tester img { flex: none; width: 44px; height: 44px; border-radius: 10px; object-fit: cover; background: rgba(0,0,0,0.4); }
+.tester > div { flex: 1; min-width: 0; }
+.tester a.open {
+  flex: none; padding: 7px 14px; border-radius: 999px;
+  background: var(--accent-color, #f44); color: #fff; font: bold 0.85rem monospace; text-decoration: none;
+}
+#testerAssets:not(:empty) { margin-bottom: 18px; }
+.empty { padding: 16px; border: 2px dashed rgba(255,255,255,0.25); border-radius: 12px; }
+
+/* History */
+.log { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.log li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.05); font-size: 0.85rem; }
+.log .plus { color: #7cff6b; font-weight: bold; }
+.log .minus { color: #ff8a8a; font-weight: bold; }
+.log time { opacity: 0.6; white-space: nowrap; }
+
+.sl-toast-stack { z-index: 1000001 !important; }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <h1>Credits &amp; Achievements</h1>
+  </div>
+
+  <section class="panel" aria-labelledby="balTitle">
+    <h2 id="balTitle">Your credits</h2>
+    <div class="balance">
+      <div>
+        <div class="amount"><span id="balance">0</span><small>credits</small></div>
+        <p class="muted" style="margin-top:8px;max-width:560px">Credits unlock content <b>early</b>, before it's fully released. You earn them from achievements. They're saved in this browser with the rest of your data, so export it (footer → Export Data) to keep them safe.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="achTitle">
+    <h2 id="achTitle">Achievements</h2>
+    <p class="muted" id="achSummary" style="margin-bottom:12px"></p>
+    <div class="grid" id="achievements"></div>
+  </section>
+
+  <section class="panel" id="early" aria-labelledby="earlyTitle">
+    <h2 id="earlyTitle">Early access</h2>
+    <div id="testerAssets"></div>
+    <div id="unlockables"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="logTitle">
+    <h2 id="logTitle">History</h2>
+    <ul class="log" id="history"></ul>
+  </section>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+<script src="../../js/credits.js"></script>
+<script>
+"use strict";
+// Renders the credits page from WS_Credits (credits.js) and re-renders on
+// any change, including ones made in another tab.
+(() => {
+  const C = window.WS_Credits;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const when = (iso) => { try { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }); } catch (_) { return ""; } };
+  // sl-icon when Shoelace is there, an emoji otherwise.
+  const icon = (name, fallback) => `<sl-icon name="${esc(name)}" aria-hidden="true"></sl-icon><span class="fallback" aria-hidden="true">${fallback}</span>`;
+
+  function render() {
+    $("balance").textContent = C.balance();
+
+    const ach = C.achievements();
+    const got = ach.filter((a) => a.earnedAt).length;
+    $("achSummary").textContent = `${got} of ${ach.length} earned.`;
+    $("achievements").innerHTML = ach.map((a) => `
+      <div class="ach ${a.earnedAt ? "" : "is-locked"}">
+        <div class="ach-icon">${a.earnedAt ? icon(a.icon || "trophy", "🏆") : icon("lock", "🔒")}</div>
+        <div>
+          <div class="ach-name">${esc(a.name)}</div>
+          <div class="ach-desc">${esc(a.earnedAt ? a.desc : a.how || a.desc)}</div>
+          <div class="ach-meta">${a.earnedAt ? `Earned ${when(a.earnedAt)} · <b>+${a.credits} credits</b>` : `Reward: <b>${a.credits} credits</b>${a.goal ? ` · ${Math.min(a.progress || 0, a.goal)}/${a.goal}` : ""}`}</div>
+        </div>
+      </div>`).join("");
+
+    // Tester builds, from the last library load on the main page.
+    let testers = [];
+    try { testers = JSON.parse(localStorage.getItem("ws_tester_assets") || "[]"); } catch (_) {}
+    if (!Array.isArray(testers)) testers = [];
+    const openUrl = (l) => (/^[a-z][a-z0-9+.-]*:/i.test(l) ? l : `https://${l}`);
+    $("testerAssets").innerHTML = testers.length
+      ? `<p class="tester-head">🧪 Tester builds: try them before everyone else, and tell us what breaks.</p>` + testers.map((a) => `
+        <div class="unlock tester">
+          <img src="${esc(a.image || "")}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+          <div>
+            <div class="ach-name">${esc(a.title || "Untitled")}</div>
+            <div class="ach-desc">${esc(a.description || a.author || "")}</div>
+          </div>
+          <a class="open" href="${esc(openUrl(String(a.link || "")))}" target="_blank" rel="noopener">Open ↗</a>
+        </div>`).join("")
+      : "";
+
+    const items = C.unlockables();
+    const bal = C.balance();
+    $("unlockables").innerHTML = items.length ? items.map((u) => `
+      <div class="unlock">
+        <div>
+          <div class="ach-name">${esc(u.name)}</div>
+          <div class="ach-desc">${esc(u.desc || "")}</div>
+        </div>
+        ${u.unlockedAt
+          ? `<span class="ach-meta">Unlocked ${when(u.unlockedAt)}</span>`
+          : `<button type="button" data-unlock="${esc(u.id)}" ${bal < u.cost ? "disabled" : ""}>Unlock · ${u.cost} 🪙</button>`}
+      </div>`).join("")
+      : testers.length ? ""
+      : `<p class="empty muted">Nothing to unlock yet. Early-access content will show up here before it's released to everyone, so hang on to your credits.</p>`;
+
+    const log = C.history();
+    $("history").innerHTML = log.length ? log.map((e) => `
+      <li><span><span class="${e.amount >= 0 ? "plus" : "minus"}">${e.amount >= 0 ? "+" : ""}${e.amount}</span> ${esc(e.reason)}</span><time>${when(e.at)}</time></li>`).join("")
+      : `<li class="muted">Nothing yet. Finish the tour (☰ → Tutorial) for your first credits.</li>`;
+  }
+
+  $("unlockables").addEventListener("click", (e) => {
+    const id = e.target.closest("[data-unlock]")?.dataset.unlock;
+    if (!id) return;
+    const res = C.unlock(id);
+    if (!res.ok) window.showToast?.(res.error === "not_enough" ? "Not enough credits yet." : "Couldn't unlock that.");
+  });
+
+  // Hide the emoji fallbacks once Shoelace's icons are available.
+  customElements.whenDefined("sl-icon").then(() => {
+    const st = document.createElement("style");
+    st.textContent = ".fallback { display: none; }";
+    document.head.appendChild(st);
+  });
+  const hide = document.createElement("style");
+  hide.textContent = "sl-icon:not(:defined) { display: none; }";
+  document.head.appendChild(hide);
+
+  document.addEventListener("ws:credits-change", render);
+  window.addEventListener("storage", (e) => { if (/^ws_(credits|credit_log|achievements|unlocks)$/.test(e.key || "")) render(); });
+  render();
+})();
+</script>
+</body>
+</html>

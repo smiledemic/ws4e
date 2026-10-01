@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../assets/media/favicons/favicon.png" />
+<title>Asset Images · WannaSmile4Evr Tools</title>
+
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<!-- JSZip: builds the .zip in the browser. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+/* Same family as the store / credits pages: tilted panels, offset accent
+   shadows, polka dots, pill buttons, coloured by the active theme. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff); text-decoration: none; font-weight: bold;
+  padding: 7px 14px; border: 2px solid rgba(255,255,255,0.35); border-radius: 999px; background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+h1 { font-size: clamp(24px, 4vh, 40px); transform: rotate(-2deg); text-shadow: 3px 3px 0 var(--accent-color, #f44); }
+.tag { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px; background: var(--accent-color, #f44); color: #fff; font-size: 0.45em; vertical-align: middle; transform: rotate(3deg); text-shadow: none; }
+
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.3deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 { display: inline-block; font-size: clamp(17px, 2.4vh, 24px); margin-bottom: 12px; transform: rotate(-1.5deg); text-shadow: 2px 2px 0 var(--accent-color, #f44); }
+.muted { opacity: 0.8; font-size: 0.85rem; line-height: 1.6; }
+.muted code { background: rgba(255,255,255,0.1); padding: 1px 5px; border-radius: 5px; }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+.btn {
+  padding: 10px 18px; border-radius: 999px; border: 2px solid var(--accent-color, #f44);
+  background: transparent; color: var(--url-color, #fff); font: bold 0.9rem monospace; cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44); transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+.btn.primary { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.45); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn[hidden] { display: none; }
+label.check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer; }
+label.check input { accent-color: var(--accent-color, #f44); width: 16px; height: 16px; }
+
+/* Progress */
+.bar { height: 16px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.3); overflow: hidden; background: rgba(0,0,0,0.4); margin-top: 14px; }
+.bar > i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(45deg, var(--accent-color, #f44) 0 10px, rgba(255,255,255,0.25) 10px 20px); transition: width 0.2s; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 14px; }
+.stat { padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12); }
+.stat b { display: block; font-size: 1.6rem; line-height: 1.1; }
+.stat span { font-size: 0.75rem; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat.ok b { color: #7cff6b; } .stat.miss b { color: #ff8a8a; } .stat.block b { color: #ffd23f; }
+.status { margin-top: 10px; font-size: 0.85rem; min-height: 1.3em; opacity: 0.9; }
+
+/* Result lists */
+.list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.filter { padding: 7px 12px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: inherit; font: 0.85rem monospace; min-width: 220px; }
+.filter:focus { outline: none; border-color: var(--accent-color, #f44); }
+table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); vertical-align: top; }
+th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+td.url { word-break: break-all; opacity: 0.8; }
+td.url a { color: inherit; }
+.why { display: inline-block; padding: 1px 7px; border-radius: 999px; background: rgba(255,138,138,0.2); color: #ffb3b3; white-space: nowrap; }
+.why.block { background: rgba(255,210,63,0.2); color: #ffe38a; }
+.empty { padding: 14px; border: 2px dashed rgba(255,255,255,0.25); border-radius: 12px; opacity: 0.8; }
+.notice { padding: 14px 18px; border-radius: 14px; border: 3px solid #ff8a8a; background: rgba(40,0,0,0.85); box-shadow: -6px 6px 0 #ff8a8a; font-weight: bold; }
+.notice a { color: inherit; }
+[hidden] { display: none !important; }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html">← Back to WannaSmile</a>
+    <h1>Asset Images <span class="tag">tool</span></h1>
+  </div>
+
+  <section class="panel">
+    <h2>Export working asset images</h2>
+    <p class="muted">
+      Reads every asset from the DATA feed, downloads each asset's <code>image</code>, and zips the ones that load.
+      Assets whose image is blank, 404s, or isn't really an image (the ones the site shows the fallback for) are
+      <b>skipped</b> and listed below. Files keep their URL path as folders, e.g.
+      <code>…github.io./library/friday-night-funkin/icon.png</code> → <code>friday-night-funkin/icon.png</code>.
+      <b>Check only</b> runs the same scan without building or downloading anything — just the lists below.
+    </p>
+    <div class="controls">
+      <button type="button" class="btn primary" id="checkBtn">Check only</button>
+      <button type="button" class="btn" id="runBtn">Scan &amp; build zip</button>
+      <button type="button" class="btn" id="stopBtn" hidden>Stop</button>
+      <button type="button" class="btn" id="dlBtn" hidden>Download zip again</button>
+      <label class="check"><input type="checkbox" id="devbuild" /> Include DevBuild assets</label>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>images to check</span></div>
+      <div class="stat ok"><b id="sOk">0</b><span id="sOkLabel">zipped</span></div>
+      <div class="stat miss"><b id="sMiss">0</b><span>missing</span></div>
+      <div class="stat block"><b id="sBlock">0</b><span>blocked by host</span></div>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" id="missingPanel" hidden>
+    <div class="list-head">
+      <h2>Missing images <span id="missCount"></span></h2>
+      <div class="controls" style="margin:0">
+        <input class="filter" id="missFilter" type="search" placeholder="Filter by name or URL…" aria-label="Filter missing images" />
+        <button type="button" class="btn" id="copyBtn">Copy names</button>
+        <button type="button" class="btn" id="copyR2Btn">Copy R2 upload list</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-bottom:10px">
+      These assets fall back to the placeholder on the site. Not in the zip.
+      <b>Upload to R2 as</b> is the key to put the replacement at in the <code>ankomstudios</code> bucket, so it serves from
+      <code>https://raw.ankomstudios.com/&lt;key&gt;</code> — then paste that URL into the asset's <code>image</code> cell.
+      <b>Copy R2 upload list</b> copies every row (tab-separated, pastes straight into a sheet).
+    </p>
+    <div id="missingList"></div>
+  </section>
+
+  <section class="panel" id="blockedPanel" hidden>
+    <h2>Shown on the site, but the host blocks downloading <span id="blockCount"></span></h2>
+    <p class="muted" style="margin-bottom:10px">These images load fine on the site, but their host doesn't allow other pages to download them, so they can't go in the zip. Re-host them (e.g. in your library) to include them.</p>
+    <div id="blockedList"></div>
+  </section>
+</div>
+
+<script src="../js/endpoints.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/ticket.js"></script>
+<script src="../js/themify.js"></script>
+<script src="../js/cursors.js"></script>
+<script>
+"use strict";
+// ── Asset Images tool ──────────────────────────────────────────────────
+// 1. Fetch the asset list from DATA (?type=assets, optionally devbuild).
+// 2. Check every distinct image URL (8 at a time):
+//      ok      → fetched, and it decodes as an image      → into the zip
+//      missing → blank cell, HTTP error, not an image, timeout, or the <img>
+//                test fails too (what makes the site show its fallback)
+//      blocked → the host refuses cross-site downloads (CORS) but the image
+//                DOES load in an <img>: it works on the site, just can't be zipped
+// 3. Zip path = the URL path, minus hosting noise (see zipPath()).
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const DATA = window.WS_ENDPOINTS.data;
+  const POOL = 8;
+  const TIMEOUT_MS = 20000;
+
+  const hasTicket = !window.WS_Ticket || window.WS_Ticket.approved();
+  if (!hasTicket) {
+    const n = document.createElement("p");
+    n.className = "notice";
+    n.innerHTML = `🎟️ This tool reads the asset list, which needs an approved access ticket. Get yours on the <a href="../../index.html">main page</a>, then come back.`;
+    document.querySelector(".top").after(n);
+    $("runBtn").disabled = true;
+    $("checkBtn").disabled = true;
+  }
+
+  // ── Zip paths ──────────────────────────────────────────────────────
+  //   ankomstudios.github.io./library/fnf/icon.png  -> fnf/icon.png
+  //   <user>.github.io/<path>                        -> <path>
+  //   raw.githubusercontent.com/<u>/<repo>/<br>/<p>  -> <p>   (or <repo>/<p> if <p> is a lone file)
+  //   anything else                                  -> _external/<host>/<path>
+  //   data: URLs                                     -> _embedded/<asset-name>.<ext>
+  const EXT = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp", "image/svg+xml": "svg", "image/avif": "avif", "image/x-icon": "ico", "image/vnd.microsoft.icon": "ico", "image/bmp": "bmp" };
+  const slug = (s) => String(s).toLowerCase().normalize("NFKD").replace(/[^\w.-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "image";
+  const cleanSeg = (s) => { let d; try { d = decodeURIComponent(s); } catch { d = s; } return d.replace(/[<>:"|?*\\\x00-\x1f]/g, "_").replace(/^\.+$/, "_"); };
+
+  function zipPath(url, title, type) {
+    if (url.startsWith("data:")) return `_embedded/${slug(title)}.${EXT[type] || "png"}`;
+    const u = new URL(url);
+    const host = u.hostname.replace(/\.$/, "").toLowerCase();
+    let segs = u.pathname.split("/").filter(Boolean).map(cleanSeg);
+    if (host.endsWith(".github.io")) {
+      if (segs[0] === "library") segs = segs.slice(1);
+    } else if (host === "raw.githubusercontent.com") {
+      const repo = segs[1];
+      segs = segs.slice(3);
+      if (segs.length < 2 && repo) segs = [repo, ...segs];
+    } else {
+      segs = ["_external", host, ...(segs.length ? segs : ["image"])];
+    }
+    if (!segs.length) segs = [slug(title)];
+    let path = segs.join("/");
+    if (!/\.[a-z0-9]{2,5}$/i.test(segs[segs.length - 1]) && EXT[type]) path += "." + EXT[type];
+    return path;
+  }
+
+  // ── R2 upload keys ─────────────────────────────────────────────────
+  // Where a missing image's replacement should go in the ankomstudios R2
+  // bucket (served at https://raw.ankomstudios.com/<key>):
+  //   already on raw.ankomstudios.com   -> its own path (re-upload in place)
+  //   github.io / raw.githubusercontent -> same path zipPath() gives, e.g. fnf/icon.png
+  //   blank, embedded, external, broken -> <asset-name>/icon.png
+  const R2_BASE = "https://raw.ankomstudios.com/";
+  function r2Key(m) {
+    const fallback = `${slug(m.title)}/icon.png`;
+    if (!m.url || m.url.startsWith("data:")) return fallback;
+    let u;
+    try { u = new URL(m.url); } catch { return fallback; }
+    const host = u.hostname.replace(/\.$/, "").toLowerCase();
+    if (host === "raw.ankomstudios.com") return u.pathname.replace(/^\/+/, "") || fallback;
+    if (host.endsWith(".github.io") || host === "raw.githubusercontent.com") {
+      const p = zipPath(m.url, m.title, "image/png");
+      return p.includes("/") ? p : `${slug(m.title)}/${p}`;
+    }
+    return fallback;
+  }
+
+  // ── Checking one image ─────────────────────────────────────────────
+  function imgLoads(url) {
+    return new Promise((resolve) => {
+      const i = new Image();
+      const t = setTimeout(() => { i.src = ""; resolve(false); }, TIMEOUT_MS);
+      i.onload = () => { clearTimeout(t); resolve(i.naturalWidth > 0); };
+      i.onerror = () => { clearTimeout(t); resolve(false); };
+      i.src = url;
+    });
+  }
+
+  async function decodes(blob) {
+    if (blob.type === "image/svg+xml") return /<svg[\s>]/i.test(await blob.slice(0, 2048).text());
+    try { const bmp = await createImageBitmap(blob); bmp.close?.(); return true; }
+    catch { return false; }
+  }
+
+  async function check(url, signal) {
+    let res;
+    const ctl = new AbortController();
+    const abort = () => ctl.abort();
+    signal.addEventListener("abort", abort);
+    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
+    try {
+      res = await fetch(url, { cache: "no-store", signal: ctl.signal, credentials: "omit" });
+    } catch (err) {
+      if (signal.aborted) throw err;
+      if (ctl.signal.aborted) return { state: "missing", why: "timed out" };
+      // Network/CORS failure: does it at least load where the site uses it?
+      return (await imgLoads(url)) ? { state: "blocked", why: "host blocks downloads" } : { state: "missing", why: "unreachable" };
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", abort);
+    }
+    if (!res.ok) return { state: "missing", why: `HTTP ${res.status}` };
+    const blob = await res.blob();
+    if (!blob.size) return { state: "missing", why: "empty file" };
+    if (!(await decodes(blob))) return { state: "missing", why: `not an image (${blob.type || "unknown type"})` };
+    return { state: "ok", blob };
+  }
+
+  // ── Run ────────────────────────────────────────────────────────────
+  let zipBlob = null, zipName = "", controller = null;
+
+  async function feed(type) {
+    await ticketReady();
+    const res = await fetch(bustCache(`${DATA}?type=${type}`), { cache: "no-store" });
+    const json = await res.json();
+    if (!Array.isArray(json)) throw new Error(json?.error || `The ${type} feed didn't return a list.`);
+    return json;
+  }
+
+  const setStat = (id, n) => { $(id).textContent = n; };
+  const status = (t) => { $("status").textContent = t; };
+
+  // zipIt = false is "Check only": same scan, nothing is kept or downloaded.
+  async function run(zipIt) {
+    $("runBtn").disabled = true; $("checkBtn").disabled = true; $("stopBtn").hidden = false; $("dlBtn").hidden = true;
+    $("sOkLabel").textContent = zipIt ? "zipped" : "load fine";
+    $("missingPanel").hidden = true; $("blockedPanel").hidden = true;
+    controller = new AbortController();
+    const signal = controller.signal;
+    ["sTotal", "sOk", "sMiss", "sBlock"].forEach(id => setStat(id, 0));
+    $("barFill").style.width = "0";
+
+    try {
+      status("Reading the asset list…");
+      const rows = [...await feed("assets")];
+      if ($("devbuild").checked) {
+        try { rows.push(...(await feed("devbuild")).map(r => ({ ...r, _dev: true }))); }
+        catch (e) { status(`DevBuild feed skipped: ${e.message}`); }
+      }
+
+      // Group assets by image URL (a URL is checked once, however many use it).
+      const byUrl = new Map();
+      const missing = [], blocked = [];
+      rows.forEach(r => {
+        const title = String(r.title || "").trim() || "(untitled)";
+        const page = r.page || "?";
+        const img = String(r.image || "").trim();
+        if (!img) { missing.push({ title, page, url: "", why: "no image in the sheet" }); return; }
+        let url = img;
+        if (!url.startsWith("data:")) {
+          url = normalizeExternalLink(url);
+          try { url = new URL(url).href; } catch { missing.push({ title, page, url: img, why: "not a valid URL" }); return; }
+        }
+        if (!byUrl.has(url)) byUrl.set(url, []);
+        byUrl.get(url).push({ title, page });
+      });
+
+      const urls = [...byUrl.keys()];
+      setStat("sTotal", urls.length);
+      setStat("sMiss", missing.length);
+      const zip = new JSZip();
+      const used = new Map();          // zip path -> url (for collisions)
+      let done = 0, ok = 0;
+
+      const addFile = (url, blob) => {
+        const first = byUrl.get(url)[0];
+        let path = zipPath(url, first.title, blob.type);
+        if (used.has(path) && used.get(path) !== url) {
+          const host = url.startsWith("data:") ? "embedded" : new URL(url).hostname.replace(/\.$/, "");
+          path = `_collisions/${host}/${path}`;
+          for (let n = 2; used.has(path); n++) path = path.replace(/(\.[^./]+)?$/, `-${n}$1`);
+        }
+        used.set(path, url);
+        zip.file(path, blob, { binary: true, compression: "STORE" });
+      };
+
+      let next = 0;
+      const worker = async () => {
+        while (next < urls.length) {
+          if (signal.aborted) return;
+          const url = urls[next++];
+          let r;
+          if (url.startsWith("data:")) {
+            try {
+              const blob = await (await fetch(url)).blob();
+              r = (await decodes(blob)) ? { state: "ok", blob } : { state: "missing", why: "broken embedded image" };
+            } catch { r = { state: "missing", why: "broken embedded image" }; }
+          } else {
+            try { r = await check(url, signal); } catch { return; }
+          }
+          const users = byUrl.get(url);
+          if (r.state === "ok") { if (zipIt) addFile(url, r.blob); ok++; }
+          else (r.state === "blocked" ? blocked : missing).push(...users.map(u => ({ ...u, url, why: r.why })));
+          done++;
+          setStat("sOk", ok); setStat("sMiss", missing.length); setStat("sBlock", blocked.length);
+          $("barFill").style.width = `${(done / urls.length) * 100}%`;
+          status(`Checked ${done} of ${urls.length}…`);
+        }
+      };
+      await Promise.all(Array.from({ length: POOL }, worker));
+
+      const stopped = signal.aborted;
+      render(missing, blocked);
+      if (!zipIt) {
+        status(`${stopped ? "Stopped early. " : ""}Checked ${done} of ${urls.length}: ${ok} load fine, ${missing.length} missing, ${blocked.length} blocked.`);
+        return;
+      }
+      if (!ok) { status(stopped ? "Stopped. Nothing was zipped yet." : "No images could be zipped."); return; }
+
+      // A report inside the zip too.
+      const lines = (list) => list.map(m => `${m.title}\tpage ${m.page}\t${m.why}\t${m.url.startsWith("data:") ? "(embedded image)" : m.url}`).join("\n");
+      zip.file("MISSING.txt",
+        `WannaSmile asset images — ${new Date().toLocaleString()}${stopped ? " (stopped early)" : ""}\n` +
+        `${ok} zipped, ${missing.length} missing, ${blocked.length} blocked by their host.\n\n` +
+        `MISSING (the site shows the fallback for these)\n${lines(missing) || "(none)"}\n\n` +
+        `BLOCKED BY HOST (work on the site, can't be downloaded)\n${lines(blocked) || "(none)"}\n`);
+
+      status(`Building the zip (${ok} images)…`);
+      zipBlob = await zip.generateAsync({ type: "blob", compression: "STORE" }, (m) => { $("barFill").style.width = `${m.percent}%`; });
+      zipName = `wannasmile-asset-images-${new Date().toISOString().slice(0, 10)}.zip`;
+      download();
+      $("dlBtn").hidden = false;
+      status(`${stopped ? "Stopped early. " : ""}Done: ${ok} images zipped (${(zipBlob.size / 1048576).toFixed(1)} MB), ${missing.length} missing, ${blocked.length} blocked.`);
+    } catch (err) {
+      console.error("[asset-images]", err);
+      status(`❌ ${err.message}`);
+    } finally {
+      $("runBtn").disabled = !hasTicket; $("checkBtn").disabled = !hasTicket; $("stopBtn").hidden = true;
+      controller = null;
+    }
+  }
+
+  function download() {
+    if (!zipBlob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(zipBlob);
+    a.download = zipName;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+
+  // ── Lists ──────────────────────────────────────────────────────────
+  let lastMissing = [];
+  const byTitle = (list) => [...list].sort((a, b) => String(a.title).localeCompare(String(b.title)));
+  function table(list, kind, withR2) {
+    if (!list.length) return `<p class="empty">None 🎉</p>`;
+    return `<table><thead><tr><th>Asset</th><th>Page</th><th>Why</th><th>Image URL</th>${withR2 ? "<th>Upload to R2 as</th>" : ""}</tr></thead><tbody>${
+      byTitle(list).map(m => `<tr data-hay="${esc((m.title + " " + m.url + (withR2 ? " " + r2Key(m) : "")).toLowerCase())}"><td>${esc(m.title)}</td><td>${esc(m.page)}</td><td><span class="why ${kind}">${esc(m.why)}</span></td><td class="url">${
+        !m.url ? "—" : m.url.startsWith("data:") ? "(embedded image)" : `<a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.url)}</a>`}</td>${
+        withR2 ? `<td class="url"><code>${esc(r2Key(m))}</code></td>` : ""}</tr>`).join("")
+    }</tbody></table>`;
+  }
+
+  function render(missing, blocked) {
+    lastMissing = missing;
+    $("missCount").textContent = `(${missing.length})`;
+    $("missingList").innerHTML = table(missing, "", true);
+    $("missingPanel").hidden = false;
+    $("blockCount").textContent = `(${blocked.length})`;
+    $("blockedList").innerHTML = table(blocked, "block");
+    $("blockedPanel").hidden = !blocked.length;
+    $("missFilter").value = "";
+  }
+
+  $("missFilter").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("#missingList tbody tr").forEach(tr => { tr.hidden = !!q && !tr.dataset.hay.includes(q); });
+  });
+  $("copyBtn").addEventListener("click", async () => {
+    const text = byTitle(lastMissing).map(m => m.title).join("\n");
+    try { await navigator.clipboard.writeText(text); window.showToast?.(`Copied ${lastMissing.length} names.`); }
+    catch { window.showToast?.("Couldn't copy — select the table instead."); }
+  });
+  $("copyR2Btn").addEventListener("click", async () => {
+    const cell = (s) => String(s ?? "").replace(/[\t\r\n]+/g, " ");
+    const rows = byTitle(lastMissing).map(m => [m.title, m.page, m.why, m.url.startsWith("data:") ? "(embedded image)" : m.url, r2Key(m), R2_BASE + r2Key(m)].map(cell).join("\t"));
+    const text = ["Asset\tPage\tWhy\tOld image URL\tR2 key\tNew image URL", ...rows].join("\n");
+    try { await navigator.clipboard.writeText(text); window.showToast?.(`Copied ${rows.length} rows for R2.`); }
+    catch { window.showToast?.("Couldn't copy — select the table instead."); }
+  });
+  $("runBtn").addEventListener("click", () => run(true));
+  $("checkBtn").addEventListener("click", () => run(false));
+  $("stopBtn").addEventListener("click", () => controller?.abort());
+  $("dlBtn").addEventListener("click", download);
+})();
+</script>
+</body>
+</html>

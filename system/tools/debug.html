@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<link id="favicon" rel="icon" href="../../assets/media/favicons/favicon.png" />
+<title>Debug panel · WannaSmile4Evr</title>
+
+<style>
+/* Same family as the store / settings pages: tilted panels, offset accent
+   shadows, polka dots, pill buttons, coloured by the active theme. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+.chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(3deg);
+}
+
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.3deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: clamp(18px, 2.6vh, 24px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.link {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s, box-shadow 0.15s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.link:nth-child(odd):hover  { transform: translateY(-4px) rotate(-1.2deg); }
+.link:nth-child(even):hover { transform: translateY(-4px) rotate(1.2deg); }
+.link:hover { border-color: var(--accent-color, #f44); box-shadow: 5px 5px 0 var(--accent-color, #f44); }
+.link:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.link b { font-size: 0.95rem; }
+.link b::after { content: " ↗"; opacity: 0.6; }
+.link span { font-size: 0.78rem; opacity: 0.85; line-height: 1.5; }
+.link code { font-size: 0.68rem; opacity: 0.6; overflow-wrap: anywhere; }
+
+.gate {
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 3px solid #ff8a8a;
+  background: rgba(40,0,0,0.85);
+  box-shadow: -6px 6px 0 #ff8a8a;
+  font-weight: bold;
+}
+.gate.checking { border-color: rgba(255,255,255,0.35); background: rgba(0,0,0,0.6); box-shadow: none; font-weight: normal; }
+[hidden] { display: none !important; }
+
+@media (max-width: 600px) { .title { text-align: left; } .panel:nth-of-type(even) { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .link { animation: none; } .link:hover { transform: none; } }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Debug panel</h1>
+      <p class="tagline">Tools and pages, one click each. <span class="chip" id="who">…</span></p>
+    </div>
+  </div>
+
+  <p class="gate checking" id="gate">Checking your ticket…</p>
+
+  <section class="panel" id="tools" aria-labelledby="toolsTitle" hidden>
+    <h2 id="toolsTitle"><span class="emoji" aria-hidden="true">🛠️</span>Tools</h2>
+    <div class="grid" id="toolGrid"></div>
+  </section>
+
+  <section class="panel" id="pages" aria-labelledby="pagesTitle" hidden>
+    <h2 id="pagesTitle"><span class="emoji" aria-hidden="true">🗂️</span>Pages</h2>
+    <div class="grid" id="pageGrid"></div>
+  </section>
+</div>
+
+<script src="../js/endpoints.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/ticket.js"></script>
+<script src="../js/themify.js"></script>
+<script src="../js/cursors.js"></script>
+<script src="../js/devtools.js"></script>
+<script>
+"use strict";
+// ── Debug panel ────────────────────────────────────────────────────────
+// Opened by typing "debugplz!" on the site (devtools.js). Lists every tool
+// and page; each opens in a new tab. Shown only to contributors (the DATA sheet ContribWS).
+// Paths are relative to this page (system/tools/).
+(() => {
+  const TOOLS = [
+    { name: "Stickers",              href: "stickers.html",               desc: "Quote builder with live preview, plus every sticker's code." },
+    { name: "Asset Images",          href: "asset-images.html",           desc: "Checks every asset icon in the sheet and zips the working ones." },
+    { name: "DataURL Compressor",    href: "dataUrl-compresserTool.html", desc: "Shrinks images into data URLs." },
+    { name: "jsDelivr → raw",        href: "delivrToRaw.html",            desc: "Turns jsDelivr links into raw.githubusercontent links." },
+    { name: "GitHub raw links",      href: "raw.html",                    desc: "Builds raw GitHub file links." },
+    { name: "GH·INDEX",              href: "git.html",                    desc: "Browses a GitHub repository's files." },
+    { name: "gn-math",               href: "gn.html",                     desc: "Mirror of the third-party gn-math page." },
+  ];
+  const PAGES = [
+    { name: "WannaSmile (home)",      href: "../../index.html",                           desc: "The main library." },
+    { name: "WannaSmile (pages copy)", href: "../pages/main/index.html",                           desc: "The main page's copy inside pages/." },
+    { name: "Discovery",              href: "../pages/discovery/index.html",                       desc: "The library with ratings." },
+    { name: "Store",                  href: "../pages/store/index.html",                           desc: "Widgets, themes and gif packs." },
+    { name: "Settings",               href: "../pages/settings/index.html",                        desc: "Paging systems and page behaviour." },
+    { name: "Credits & achievements", href: "../pages/credits-n-achievements/index.html",    desc: "Balance, achievements and unlocks." },
+    { name: "Discord",                href: "../pages/discord/index.html",                         desc: "Server landing page and studio links." },
+    { name: "DMCA",                   href: "../pages/dmca/index.html",                            desc: "Copyright policy and takedown requests." },
+  ];
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fill = (id, list) => {
+    document.getElementById(id).innerHTML = list.map((l, i) =>
+      `<a class="link" style="--i:${i}" href="${esc(l.href)}" target="_blank" rel="noopener">
+         <b>${esc(l.name)}</b><span>${esc(l.desc)}</span><code>${esc(l.href.replace(/^(\.\.\/)+/, ""))}</code></a>`).join("");
+  };
+
+  const gate = document.getElementById("gate");
+  const user = (localStorage.getItem("ws_username") || "").replace(/^@/, "");
+  document.getElementById("who").textContent = user ? `@${user}` : "no ticket";
+
+  // Why the check said no (devtools.js WS_Dev.reason()), in plain words.
+  const WHY = {
+    "no-ticket":          () => "This browser has no ticket.",
+    "no-username":        (r) => `Ticket <code>${esc(r.id)}</code> has no username saved in this browser.`,
+    "not-listed":         (r) => `Ticket <code>${esc(r.id)}</code> isn't a contributor: it needs a row in the ContribWS sheet whose Username matches the name the ticket was created with.`,
+    "server-status":      (r) => `The server says ticket <code>${esc(r.id)}</code> is <b>${esc(r.status)}</b> with this browser's key.`,
+    "server-unreachable": () => "Couldn't reach the server, try reloading.",
+  };
+  const lock = () => {
+    const r = window.WS_Dev?.reason?.();
+    gate.className = "gate";
+    gate.innerHTML = "🔒 This panel is only for the WannaSmile team." +
+      (r && WHY[r.code] ? `<br><small>${WHY[r.code](r)}</small>` : "");
+    gate.hidden = false;
+    document.getElementById("tools").hidden = true;
+    document.getElementById("pages").hidden = true;
+  };
+  // A remembered pass opens the panel at once; if the background re-check
+  // then says no, lock it again (devtools.js).
+  document.addEventListener("ws:dev-revoked", lock);
+
+  (window.WS_Dev ? window.WS_Dev.check() : Promise.resolve(false)).then((ok) => {
+    if (!ok) { lock(); return; }
+    gate.hidden = true;
+    fill("toolGrid", TOOLS);
+    fill("pageGrid", PAGES);
+    document.getElementById("tools").hidden = false;
+    document.getElementById("pages").hidden = false;
+  });
+})();
+</script>
+</body>
+</html>

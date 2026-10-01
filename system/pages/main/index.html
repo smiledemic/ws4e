@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png"/>
+<title>WannaSmile4Evr</title>
+
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<!-- Word filter (nickname/ticket checks): no DOM needed, so it loads here and
+     starts fetching its list straight away. See wordfilter.js. -->
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/wordfilter.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" />
+<!-- Shoelace components (sl-alert for achievement pop-ups, credits.js). -->
+<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/shoelace-autoloader.js"></script>
+<link rel="stylesheet" href="../../css/main.css" />
+<link rel="stylesheet" href="../../css/widgets.css" />
+<link rel="stylesheet" href="../../css/shortcuts.css" />
+<link rel="stylesheet" href="../../css/profile.css" />
+<link rel="stylesheet" href="../../css/tutorial.css" />
+
+<script>
+// Preload whichever theme is actually cached as active (see themify.js's
+// ws_theme_cache), instead of always warming up redux's images regardless
+// of what the user actually last used. Falls back to redux's own images on
+// a first-ever visit, when nothing has been cached yet.
+(function () {
+  var FALLBACK = [
+    "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/headerBg.png",
+    "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/quoteBg.png",
+    "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png",
+    "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/footerBg.png"
+  ];
+
+  function isPreloadableImage(v) {
+    v = (v == null ? "" : String(v)).trim();
+    return /^(https?:)?\/\//i.test(v) || v.indexOf("data:") === 0;
+  }
+
+  var urls = null;
+  try {
+    var activeId = (localStorage.getItem("selectedTheme") || "redux").trim().toLowerCase();
+    var cache    = JSON.parse(localStorage.getItem("ws_theme_cache") || "{}");
+    var row      = cache && typeof cache === "object" ? cache[activeId] : null;
+    if (row) urls = [row[3], row[4], row[5], row[6]].filter(isPreloadableImage);
+  } catch (_) { urls = null; }
+
+  (urls && urls.length ? urls : FALLBACK).forEach(function (href) {
+    var link = document.createElement("link");
+    link.rel  = "preload";
+    link.as   = "image";
+    link.href = window.toMediabase(href);
+    document.head.appendChild(link);
+  });
+})();
+
+// Same idea for the active gif pack (see themify.js's ws_gifpack_cache) — the
+// loader gif is the very first thing visible on load, so warm up whichever
+// pack the user actually has active instead of always fetching redux's and
+// letting it sit there until the real one swaps in.
+(function () {
+  var FALLBACK = ["https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loading.gif", "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loaded.gif"];
+
+  var urls = null;
+  try {
+    var activeId = (localStorage.getItem("ws_active_gifpack") || "redux").trim().toLowerCase();
+    var cache    = JSON.parse(localStorage.getItem("ws_gifpack_cache") || "{}");
+    var pack     = cache && typeof cache === "object" ? cache[activeId] : null;
+    var states   = pack && pack.states ? pack.states : null;
+    if (states) {
+      urls = ["loading", "loaded"]
+        .map(function (key) { return states[key] && states[key].src; })
+        .filter(Boolean);
+    }
+  } catch (_) { urls = null; }
+
+  (urls && urls.length ? urls : FALLBACK).forEach(function (href) {
+    var link = document.createElement("link");
+    link.rel  = "preload";
+    link.as   = "image";
+    link.href = window.toMediabase(href);
+    document.head.appendChild(link);
+  });
+})();
+</script>
+
+<link rel="preload" as="image" href="https://i.redd.it/kjektcn4myv91.png" /> <!--Graduation background image-->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
+</head>
+
+<body class="ws-loading">
+
+<div id="incognitoIndicator">blob:null mode</div>
+<div id="topBar">
+  <header>
+    <nav class="nav-links">
+      <a href="../main/index.html" target="_blank">Home</a>
+      <a href="../discovery/index.html" target="_blank">Discovery</a>
+      <a href="../settings/index.html" target="_blank">Settings</a>
+      <a href="https://padlet.com/ankomstudios/wannasmile4evr-s023ilquhanqla56127i" target="_blank">Suggestions</a>
+      <!-- Ads and Partnerships: page not made yet. -->
+      <!-- <a href="#" title="Coming soon">Ads and Partnerships</a> -->
+      <div class="pages-anchor">
+        <button class="arrowleft" onclick="prevPage()">
+          <img src="../../../assets/media/images/header-arrows/left-arrow.png" />
+        </button>
+        <span class="page-indicator">...</span>
+        <button class="arrowright" onclick="nextPage()">
+          <img src="../../../assets/media/images/header-arrows/right-arrow.png" />
+        </button>
+        <a href="../store/index.html" target="_blank">STORE</a>
+        <a href="#" title="Coming soon">NEWS</a>
+
+        <button class="mute-btn">
+          <img src="../../../assets/media/images/audio-toggle-btn/mute.png" id="muteToggleImg" />
+        </button>
+
+        <button class="Qtype">
+          <img src="../../../assets/media/images/qtypes-btn/Qleft.png" id="QtypeToggle" />
+        </button>
+
+        <button id="nes-btn">
+          <img src="../../../assets/media/images/panic-btn/deny.png" alt="Toggle">
+        </button>
+
+<button id="cloak-btn">
+  <img src="../../../assets/media/images/cloak-btn/cloaked.png" alt="CloakToggle">
+</button>
+
+<button id="fav-btn" title="Show favorites" aria-pressed="false">
+  <img src="../../../assets/media/images/fav-btn/unfav.gif" alt="Favorites toggle">
+</button>
+
+      </div>
+    </nav>
+    <div class="header-controls">
+      <div class="search-box">
+        <input id="searchInputHeader" type="text" placeholder="Search..." />
+        <button id="searchBtnHeader" aria-haspopup="true" aria-expanded="false">
+          <img src="https://raw.githubusercontent.com/5lackerish/5lackerish.github.io/main/system/images/icons/search.png" />
+        </button>
+        <div id="searchCategoryMenu" class="search-category-menu" aria-hidden="true">
+          <p class="search-category-heading">Categories</p>
+          <div id="searchCategoryList" class="search-category-list"></div>
+          <p class="search-category-heading">Sub-categories</p>
+          <div id="searchSubcategoryList" class="search-category-list"></div>
+        </div>
+      </div>
+      <img id="pfp" src="https://raw.githubusercontent.com/mcmattyobriore/yogurtyooo.github.io/main/system/images/profile/smile.png" />
+      <button id="dashboardBtn">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+    </div>
+  </header>
+  <div id="quoteWrapper">
+    <p id="quoteBox"></p>
+  </div>
+</div>
+
+<aside id="dashboardMenu" class="dashboard-menu">
+  <div id="dashIdRow" class="dash-id-row">
+    <span class="dash-names">
+      <span id="dashNickname" title="Your nickname">Nickname</span>
+      <span id="dashUsername" title="Your username (on your ticket)"></span>
+    </span>
+    <code id="dashTicketId" role="button" tabindex="0">no ticket</code>
+  </div>
+  <a href="#" id="openShortCuts">Shortcuts</a>
+  <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
+  <a href="../credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
+  <a href="#" id="clearData">Clear My Data</a>
+</aside>
+
+<div id="containerLoader">
+  <img src="https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loading.gif" alt="loading..." />
+</div>
+
+<main>
+  <div id="container"></div>
+</main>
+
+<button id="toTopBtn">⬆ Top</button>
+
+<button id="wsWidgetBubble" aria-label="Open widget">
+  <img id="wsWidgetIcon" src="" alt="" />
+</button>
+<div id="wsWidgetPanel">
+  <div id="wsWidgetBtns">
+    <button class="ss-panel-btn" id="wsWidgetFsBtn"    title="Fullscreen">⛶</button>
+    <button class="ss-panel-btn" id="wsWidgetMinBtn"   title="Minimize">−</button>
+    <button class="ss-panel-btn" id="wsWidgetCloseBtn" title="Close">✕</button>
+  </div>
+  <div id="wsWidgetFrameWrap"></div>
+  <div id="wsWidgetResizeHandle"></div>
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="https://github.com/wannasmile4evr/wannasmile4evr.github.io" target="_blank" rel="noopener noreferrer">source</a>
+    <a href="../dmca/index.html">DMCA</a>
+    <a href="../discord/index.html" target="_blank">Discord</a>
+<a href="#" id="importData">Import Data</a>
+<a href="#" id="exportData">Export Data</a>
+<a href="#" id="transData">Transfer Data</a>
+    <a href="#" id="footerVersion">WannaSmile4Evr</a>
+  </div>
+</footer>
+
+<div id="profileOverlay">
+  <!-- Left: profile picture library (opens from the avatar or the gear) -->
+  <aside id="pfpLibrary" class="pf-library pf-library-left" role="dialog" aria-labelledby="pfpLibraryTitle" hidden>
+    <div class="pf-library-head">
+      <h3 id="pfpLibraryTitle">Profile pictures</h3>
+      <div class="pf-tabs" role="tablist" aria-label="Picture or frame">
+        <button type="button" role="tab" class="pf-tab" data-pf-tab="pictures" aria-selected="true">Pictures</button>
+        <button type="button" role="tab" class="pf-tab" data-pf-tab="frames" aria-selected="false">Frames</button>
+        <button type="button" role="tab" class="pf-tab" data-pf-tab="wrappers" aria-selected="false">Wrapper</button>
+      </div>
+      <button type="button" class="pf-icon-btn pf-library-close" data-close-library="pfp" aria-label="Close profile pictures"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <p class="pf-adv-hint"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> Advanced editing: pick a picture to crop it.</p>
+    <div id="pfpGrid" class="pf-library-grid pfp-grid"></div>
+    <div id="frameGrid" class="pf-library-grid pfp-grid frame-grid" hidden></div>
+    <div id="wrapperGrid" class="pf-library-grid wrapper-grid" hidden></div>
+    <div id="cropContainer" class="pf-crop" style="display:none;">
+      <img id="cropPreview" alt="Crop your picture">
+      <div class="crop-actions">
+        <button type="button" id="cropConfirm" class="overlay-btn save-btn"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> Crop</button>
+        <button type="button" id="cropCancel" class="overlay-btn">Cancel</button>
+      </div>
+    </div>
+    <div class="pf-library-foot">
+      <button type="button" id="removePicBtn" class="overlay-btn remove-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove picture</button>
+      <button type="button" id="removeFrameBtn" class="overlay-btn remove-btn" hidden><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove frame</button>
+      <button type="button" id="removeWrapperBtn" class="overlay-btn remove-btn" hidden><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove wrapper</button>
+    </div>
+    <input type="file" id="profilePicInput" accept="image/*" hidden>
+    <input type="file" id="profileFrameInput" accept="image/png,image/webp,image/gif,image/apng" hidden>
+  </aside>
+
+  <!-- Centre: the profile card, with Save below it -->
+  <div class="pf-center">
+    <div id="profileOverlayPanel" role="dialog" aria-modal="true" aria-labelledby="profileOverlayTitle" tabindex="-1">
+      <div id="profileWrapper" class="pf-wrapper" aria-hidden="true" hidden></div>
+      <div id="profileBanner" class="profile-banner" role="button" tabindex="0" aria-label="Change banner">
+        <span class="pf-edit-badge" aria-hidden="true"><i class="fa-solid fa-pencil"></i></span>
+      </div>
+
+      <h2 class="pf-title"><button type="button" id="profileOverlayTitle" class="pf-title-btn" title="Open pictures and banners" aria-expanded="false">Edit your profile</button></h2>
+
+      <div class="pf-top-actions">
+        <div class="pf-gear-wrap">
+          <button type="button" id="profileGearBtn" class="pf-icon-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="profileGearMenu" title="Profile options" aria-label="Profile options"><i class="fa-solid fa-gear" aria-hidden="true"></i></button>
+          <div id="profileGearMenu" class="pf-gear-menu" role="menu" hidden>
+            <button type="button" role="menuitem" data-open-library="pfp"><i class="fa-solid fa-user-pen" aria-hidden="true"></i> Profile pictures</button>
+            <button type="button" role="menuitem" data-open-library="frames"><i class="fa-regular fa-circle-dot" aria-hidden="true"></i> Picture frames</button>
+            <button type="button" role="menuitem" data-open-library="wrappers"><i class="fa-solid fa-image" aria-hidden="true"></i> Card wrapper</button>
+            <button type="button" role="menuitem" data-open-library="banner"><i class="fa-solid fa-panorama" aria-hidden="true"></i> Banners</button>
+            <button type="button" role="menuitemcheckbox" id="pixelToggleBtn" aria-checked="false"><i class="fa-solid fa-border-all" aria-hidden="true"></i> <span>Pixelate picture</span></button>
+            <button type="button" role="menuitemcheckbox" id="advancedEditBtn" aria-checked="false" title="Crop any picture or banner before using it"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> <span>Advanced editing</span></button>
+            <div class="pf-gear-group" role="group" aria-labelledby="wrapperOpacityLabel">
+              <span id="wrapperOpacityLabel" class="pf-gear-label">Wrapper opacity</span>
+              <div class="pf-opacity">
+                <input type="range" id="wrapperOpacity" min="0" max="100" step="1" value="100" aria-labelledby="wrapperOpacityLabel">
+                <output id="wrapperOpacityVal" for="wrapperOpacity">100%</output>
+              </div>
+            </div>
+            <div class="pf-gear-group" role="group" aria-labelledby="pfpAlignLabel">
+              <span id="pfpAlignLabel" class="pf-gear-label">Picture position</span>
+              <div class="pf-align-choices">
+                <button type="button" role="menuitemradio" data-align="left" aria-checked="true" title="Left"><i class="fa-solid fa-align-left" aria-hidden="true"></i><span>Left</span></button>
+                <button type="button" role="menuitemradio" data-align="center" aria-checked="false" title="Centre"><i class="fa-solid fa-align-center" aria-hidden="true"></i><span>Centre</span></button>
+                <button type="button" role="menuitemradio" data-align="right" aria-checked="false" title="Right"><i class="fa-solid fa-align-right" aria-hidden="true"></i><span>Right</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="profileOverlayClose" class="pf-icon-btn" title="Close" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+
+      <div class="profile-head" data-align="left">
+        <button type="button" id="profileAvatarBtn" class="pf-avatar-btn" aria-label="Change profile picture">
+          <img id="profilePreview" class="profile-preview" src="" alt="">
+          <img id="profileFramePreview" class="pf-frame" alt="" draggable="false" hidden>
+          <span class="pf-avatar-pencil" aria-hidden="true"><i class="fa-solid fa-pencil"></i></span>
+        </button>
+        <div class="profile-head-text">
+          <div class="pf-name-row">
+            <span class="profile-overlay-username" id="profileOverlayUsername">Nickname</span>
+            <input type="text" id="usernameInput" class="pf-name-input" maxlength="20" autocomplete="off" spellcheck="false" aria-label="Nickname" hidden>
+            <button type="button" id="editNameBtn" class="pf-name-edit" aria-label="Edit nickname" title="Edit nickname"><i class="fa-solid fa-pencil" aria-hidden="true"></i></button>
+          </div>
+          <div class="profile-overlay-handle" id="profileOverlayHandle"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pf-save-row">
+      <button type="button" id="profileSaveBtn" class="overlay-btn save-btn" hidden><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save changes</button>
+    </div>
+  </div>
+
+  <!-- Right: banner library (opens from the banner or the gear) -->
+  <aside id="bannerLibrary" class="pf-library pf-library-right" role="dialog" aria-labelledby="bannerLibraryTitle" hidden>
+    <div class="pf-library-head">
+      <h3 id="bannerLibraryTitle">Banners</h3>
+      <button type="button" class="pf-icon-btn pf-library-close" data-close-library="banner" aria-label="Close banners"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <p class="pf-adv-hint"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> Advanced editing: pick a banner to crop it.</p>
+    <div id="bannerGrid" class="pf-library-grid banner-grid"></div>
+    <div id="bannerCropContainer" class="pf-crop" style="display:none;">
+      <img id="bannerCropPreview" alt="Crop your banner">
+      <div class="crop-actions">
+        <button type="button" id="bannerCropConfirm" class="overlay-btn save-btn"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> Crop</button>
+        <button type="button" id="bannerCropCancel" class="overlay-btn">Cancel</button>
+      </div>
+    </div>
+    <div class="pf-library-foot">
+      <button type="button" id="removeBannerBtn" class="overlay-btn remove-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove banner</button>
+    </div>
+    <input type="file" id="profileBannerInput" accept="image/*" hidden>
+  </aside>
+</div>
+
+<script src="../../js/utils.js"></script>
+<script src="../../js/datacache.js"></script>
+<script src="../../js/paging.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/frames.js"></script>
+<script src="../../js/wrappers.js"></script>
+<script src="../../js/cursors.js"></script>
+<script src="../../js/sanitizer.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="../../js/profile.js"></script>
+<script src="../../js/settings.js"></script>
+<script src="../../js/ui.js"></script>
+<script src="../../js/stickers.js"></script>
+<script src="../../js/quotes.js"></script>
+<script src="../../js/main.js"></script>
+<script src="../../js/boom.js"></script>
+<script src="../../js/panic.js"></script>
+<script src="../../js/shortcuts.js"></script>
+<script src="../../js/widgets.js"></script>
+<script src="../../js/data.js"></script>
+<script src="../../js/gridSettings.js"></script>
+<script src="../../js/credits.js"></script>
+<script src="../../js/devtools.js"></script>
+<script src="../../js/tutorial.js"></script>
+
+</body>
+</html>

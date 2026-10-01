@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../assets/media/favicons/favicon.png" />
+<title>Stickers · WannaSmile4Evr Tools</title>
+
+<style>
+/* Same family as the store / settings pages: tilted panels, offset accent
+   shadows, polka dots, pill buttons, coloured by the active theme. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+  overflow-x: hidden;
+}
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+.chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(3deg);
+}
+
+/* ── Sticky toolbar: search + copy format ── */
+.bar {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: 0 5px 0 var(--accent-color, #f44);
+}
+.bar input {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.4);
+  color: var(--url-color, #fff);
+  font: bold 0.85rem monospace;
+  outline: none;
+}
+.bar input:focus { border-color: var(--accent-color, #f44); }
+.bar-label { font-size: 0.78rem; opacity: 0.8; padding-left: 4px; }
+.seg { display: flex; gap: 3px; padding: 3px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.25); }
+.seg button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.78rem monospace;
+  cursor: pointer;
+}
+.seg button:hover { background: rgba(255,255,255,0.1); }
+.seg button.is-on { background: var(--accent-color, #f44); color: #fff; }
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.3deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel[hidden] { display: none; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.panel h2 {
+  display: inline-block;
+  font-size: clamp(18px, 2.6vh, 24px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.count { font-size: 0.8rem; opacity: 0.8; }
+
+.tip {
+  padding: 10px 14px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.5);
+  color: var(--accent-color, #f44);
+  font: bold 0.8rem monospace;
+}
+
+/* ── Sticker tiles ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 14px; }
+.sticker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px 10px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  color: var(--url-color, #fff);
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s, box-shadow 0.15s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 25ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.sticker:nth-child(odd):hover  { transform: translateY(-4px) rotate(-2deg); }
+.sticker:nth-child(even):hover { transform: translateY(-4px) rotate(2deg); }
+.sticker:hover { border-color: var(--accent-color, #f44); box-shadow: 4px 4px 0 var(--accent-color, #f44); }
+.sticker:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.sticker img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  filter: drop-shadow(2px 3px 0 rgba(0,0,0,0.5));
+  pointer-events: none;
+}
+.sticker .name { font-weight: bold; font-size: 0.82rem; }
+.sticker .code {
+  max-width: 100%;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.45);
+  font-size: 0.66rem;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sticker .copied {
+  position: absolute;
+  top: -11px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.68rem monospace;
+  transform: rotate(4deg);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.sticker.just-copied .copied { opacity: 1; }
+.sticker.just-copied { animation: bump 0.35s ease; }
+@keyframes bump { 40% { transform: scale(1.08) rotate(-3deg); } }
+
+/* ── Quote preview ── */
+.compose { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.compose textarea {
+  min-height: 110px;
+  padding: 10px 12px;
+  resize: vertical;
+  border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.45);
+  color: var(--url-color, #fff);
+  font: 0.85rem/1.5 monospace;
+  outline: none;
+}
+.compose textarea:focus { border-color: var(--accent-color, #f44); }
+.preview {
+  min-height: 110px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.3);
+  font: bold 0.9rem/1.6 monospace;
+  overflow-wrap: anywhere;
+}
+.preview img { display: inline-block; vertical-align: middle; max-height: 1.6em; width: auto; }
+.preview .empty { opacity: 0.5; font-weight: normal; font-style: italic; }
+.compose-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.8rem monospace;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn:hover { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--accent-color, #f44); }
+.btn.main { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.45); }
+.btn:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+/* ── Quote builder tools ── */
+.tools { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.tool {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 10px; border-radius: 12px;
+  border: 2px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04);
+  font-size: 0.8rem;
+}
+.tool-label { min-width: 48px; font-weight: bold; opacity: 0.85; }
+.btn.sm { padding: 5px 11px; font-size: 0.75rem; box-shadow: 0 2px 0 var(--accent-color, #f44); }
+.tool input[type="text"], .tool input[type="url"], .tool input[type="number"], .tool select {
+  padding: 5px 9px; border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.25); background: rgba(0,0,0,0.45);
+  color: var(--url-color, #fff); font: 0.78rem monospace; outline: none;
+}
+.tool input:focus, .tool select:focus { border-color: var(--accent-color, #f44); }
+.tool select option { background: #222; }
+.tool input[type="color"] { width: 32px; height: 26px; padding: 0; border: 2px solid rgba(255,255,255,0.25); border-radius: 8px; background: none; cursor: pointer; }
+.md-input { flex: 1; min-width: 160px; }
+.sm-input { width: 170px; }
+.xs-input { width: 70px; }
+label.check { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; font-size: 0.78rem; }
+label.check input { accent-color: var(--accent-color, #f44); }
+.preview { overflow: visible; }
+.preview-extra { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 0.75rem; opacity: 0.85; }
+.preview-extra:empty { display: none; }
+.warn { margin-top: 10px; font-size: 0.78rem; color: #ffd23f; }
+.warn[hidden] { display: none; }
+
+.empty-state {
+  padding: 16px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  text-align: center;
+}
+.empty-state[hidden] { display: none; }
+
+@media (max-width: 700px) {
+  .title { text-align: left; }
+  .bar { border-radius: 18px; }
+  .compose { grid-template-columns: 1fr; }
+  .panel:nth-of-type(even) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .sticker { animation: none; }
+  .sticker:hover, .btn:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Stickers</h1>
+      <p class="tagline">Build quotes and copy sticker codes. <span class="chip" id="totalChip">0 stickers</span></p>
+    </div>
+  </div>
+
+  <div class="bar">
+    <input id="search" type="search" placeholder="Search stickers or packs…" autocomplete="off" spellcheck="false" aria-label="Search stickers" />
+    <span class="bar-label">Copy as</span>
+    <div class="seg" role="group" aria-label="Copy format">
+      <button type="button" data-format="path" class="is-on" aria-pressed="true">:pack/file:</button>
+      <button type="button" data-format="name" aria-pressed="false">:name:</button>
+    </div>
+  </div>
+
+  <section class="panel" aria-labelledby="composeTitle">
+    <div class="panel-head">
+      <h2 id="composeTitle"><span class="emoji" aria-hidden="true">✍️</span>Quote builder</h2>
+      <label class="check"><input type="checkbox" id="clickAdds" /> Clicking a sticker adds it to the quote</label>
+    </div>
+    <p class="tip" style="margin-bottom: 14px">
+      Select some text, then use a tool to wrap it (with nothing selected, the tool inserts a sample you can type over).
+      The preview uses the same code as the quote bar, so what you see is what the site shows once the quote is in the sheet.
+      Stickers: <code>:pack/file:</code> or <code>:name:</code> (click one below with the box above ticked).
+      <code>**bold**</code> <code>*italic*</code> — type <code>\*</code> for a plain asterisk.
+    </p>
+
+    <div class="tools">
+      <div class="tool">
+        <span class="tool-label">Text</span>
+        <button type="button" class="btn sm" data-wrap="bold" title="**bold**"><b>B</b></button>
+        <button type="button" class="btn sm" data-wrap="italic" title="*italic*"><i>I</i></button>
+      </div>
+      <div class="tool">
+        <span class="tool-label">Style</span>
+        <label class="check"><input type="checkbox" id="stColorOn" /> Colour</label>
+        <input type="color" id="stColor" value="#ff4444" aria-label="Text colour" />
+        <label class="check"><input type="checkbox" id="stUnder" /> Underline</label>
+        <select id="stEffect" aria-label="Effect"><option value="">No effect</option></select>
+        <input type="text" id="stSpeed" class="sm-input" placeholder="speeds e.g. 120,70,30" aria-label="Scroll speeds: normal, hover, hover text" />
+        <button type="button" class="btn sm" data-wrap="style">Apply style</button>
+      </div>
+      <div class="tool">
+        <span class="tool-label">Link</span>
+        <input type="url" id="lnSrc" class="md-input" placeholder="https://…" aria-label="Link URL" />
+        <label class="check"><input type="checkbox" id="lnAcOn" /> Hover colour</label>
+        <input type="color" id="lnAc" value="#44aaff" aria-label="Hover colour" />
+        <label class="check"><input type="checkbox" id="lnUnder" /> Underline</label>
+        <button type="button" class="btn sm" data-wrap="link">Make link</button>
+      </div>
+      <div class="tool">
+        <span class="tool-label">Audio</span>
+        <input type="url" id="auSrc" class="md-input" placeholder="https://raw.ankomstudios.com/…mp3" aria-label="Audio URL" />
+        <input type="number" id="auVol" class="xs-input" min="0" max="100" value="100" aria-label="Volume %" title="Volume %" />%
+        <input type="number" id="auStart" class="xs-input" min="0" step="0.1" placeholder="start" aria-label="Start (seconds)" />
+        <input type="number" id="auEnd" class="xs-input" min="0" step="0.1" placeholder="end" aria-label="End (seconds)" />
+        <button type="button" class="btn sm" data-wrap="audio">Add audio</button>
+      </div>
+    </div>
+
+    <div class="compose">
+      <textarea id="composer" aria-label="Quote text" placeholder="Type a quote here…" spellcheck="false"></textarea>
+      <div>
+        <div class="preview" id="preview" aria-live="polite"><span class="empty">Your quote shows here.</span></div>
+        <div class="preview-extra" id="previewExtra"></div>
+      </div>
+    </div>
+    <p class="warn" id="lineWarn" hidden>Tabs and line breaks can't go in one sheet cell — <b>Copy for sheet</b> turns them into spaces.</p>
+    <div class="compose-actions">
+      <button type="button" class="btn" id="clearQuote">Clear</button>
+      <button type="button" class="btn main" id="copyQuote">Copy for sheet</button>
+    </div>
+  </section>
+
+  <div id="packs"></div>
+  <p class="empty-state" id="noMatches" hidden>No stickers match that search.</p>
+</div>
+
+<script src="../js/endpoints.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/ticket.js"></script>
+<script src="../js/themify.js"></script>
+<script src="../js/cursors.js"></script>
+<script src="../js/stickers.js"></script>
+<script src="../js/quotes.js"></script>
+<script>
+"use strict";
+// ── Sticker picker + quote builder ─────────────────────────────────────
+// Every sticker from stickers.js, grouped by pack. Clicking one copies its
+// quote code (or adds it to the quote). The builder wraps the selection in
+// the quote syntax and previews it with the quote bar's own renderer
+// (quotes.js → WS_QuoteFormat), so the preview matches the site.
+(() => {
+  const S = window.WS_Stickers;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (msg) => window.showToast?.(msg, 1800);
+  const FORMAT_KEY = "ws_sticker_copy_format";
+
+  let format = localStorage.getItem(FORMAT_KEY) === "name" ? "name" : "path";
+  const codeOf = (s) => format === "name" ? `:${s.name}:` : s.code;
+
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (_) {
+      const ta = Object.assign(document.createElement("textarea"), { value: text });
+      ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta); ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    }
+  }
+
+  // ── Packs ────────────────────────────────────────────────────────────
+  const all = S.list();
+  $("totalChip").textContent = `${all.length} stickers`;
+  const packs = new Map();
+  for (const s of all) {
+    if (!packs.has(s.pack)) packs.set(s.pack, []);
+    packs.get(s.pack).push(s);
+  }
+
+  const tiles = [];
+  const sections = [];
+  for (const [pack, stickers] of packs) {
+    const section = document.createElement("section");
+    section.className = "panel";
+    section.style.marginTop = "clamp(18px, 3vh, 30px)";
+    section.innerHTML = `
+      <div class="panel-head">
+        <h2><span class="emoji" aria-hidden="true">🏷️</span>${esc(pack.replace(/-pack$/i, ""))}</h2>
+        <span class="count"></span>
+      </div>
+      <div class="grid"></div>`;
+    const grid = section.querySelector(".grid");
+    stickers.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "sticker";
+      b.style.setProperty("--i", i);
+      b.innerHTML = `<span class="copied">Copied!</span>
+        <img src="${esc(S.src(s.path))}" alt="" loading="lazy" decoding="async" />
+        <span class="name">${esc(s.name)}</span>
+        <span class="code"></span>`;
+      b.addEventListener("click", async () => {
+        const code = codeOf(s);
+        if ($("clickAdds").checked) {
+          insertText(code);
+          toast(`➕ Added ${code}`);
+          return;
+        }
+        if (!(await copy(code))) { toast("Couldn't copy. Select the code and copy it by hand."); return; }
+        b.classList.remove("just-copied"); void b.offsetWidth; b.classList.add("just-copied");
+        clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove("just-copied"), 1200);
+        toast(`📋 Copied ${code}`);
+      });
+      grid.appendChild(b);
+      tiles.push({ s, b, section });
+    });
+    $("packs").appendChild(section);
+    sections.push({ section, count: section.querySelector(".count"), total: stickers.length });
+  }
+
+  function paintCodes() {
+    for (const { s, b } of tiles) {
+      const code = codeOf(s);
+      b.querySelector(".code").textContent = code;
+      b.title = `Copy ${code}`;
+      b.setAttribute("aria-label", `${s.name}: copy ${code}`);
+    }
+    document.querySelectorAll(".seg button").forEach((btn) => {
+      const on = btn.dataset.format === format;
+      btn.classList.toggle("is-on", on);
+      btn.setAttribute("aria-pressed", String(on));
+    });
+  }
+
+  document.querySelectorAll(".seg button").forEach((btn) => btn.addEventListener("click", () => {
+    format = btn.dataset.format;
+    try { localStorage.setItem(FORMAT_KEY, format); } catch (_) {}
+    paintCodes();
+  }));
+
+  // ── Search ───────────────────────────────────────────────────────────
+  $("search").addEventListener("input", () => {
+    const q = $("search").value.trim().toLowerCase();
+    let shown = 0;
+    for (const { s, b } of tiles) {
+      const hit = !q || s.name.includes(q) || s.path.toLowerCase().includes(q);
+      b.hidden = !hit;
+      if (hit) shown++;
+    }
+    for (const { section, count, total } of sections) {
+      const n = section.querySelectorAll(".sticker:not([hidden])").length;
+      section.hidden = n === 0;
+      count.textContent = q ? `${n} of ${total}` : `${total} stickers`;
+    }
+    $("noMatches").hidden = shown > 0;
+  });
+  $("search").dispatchEvent(new Event("input"));
+
+  // ── Quote builder ────────────────────────────────────────────────────
+  const Q = window.WS_QuoteFormat;
+  const composer = $("composer");
+  const DRAFT_KEY = "ws_quote_draft";
+
+  Q.EFFECTS.forEach((fx) => $("stEffect").add(new Option(fx, fx)));
+
+  // Wraps the selection in before/after; with nothing selected, inserts
+  // before + sample + after and selects the sample so typing replaces it.
+  function wrapSelection(before, after, sample = "text") {
+    const { selectionStart: a, selectionEnd: b, value } = composer;
+    const inner = value.slice(a, b) || sample;
+    composer.setRangeText(before + inner + after, a, b, "end");
+    composer.setSelectionRange(a + before.length, a + before.length + inner.length);
+    composer.focus();
+    renderPreview();
+  }
+  function insertText(text) {
+    const { selectionStart: a, selectionEnd: b } = composer;
+    composer.setRangeText(text, a, b, "end");
+    composer.focus();
+    renderPreview();
+  }
+
+  // Prop values can't hold the syntax's own separators.
+  const clean = (v) => String(v).replace(/[;{}\[\]]/g, "").trim();
+  const props = (list) => list.filter(Boolean).join(";");
+
+  const WRAPS = {
+    bold:   () => wrapSelection("**", "**"),
+    italic: () => wrapSelection("*", "*"),
+    style:  () => {
+      const p = props([
+        $("stColorOn").checked && `c:${$("stColor").value}`,
+        $("stUnder").checked && "u:true",
+        $("stEffect").value && `type:${$("stEffect").value}`,
+        clean($("stSpeed").value) && `sp:${clean($("stSpeed").value).replace(/\s+/g, "")}`,
+      ]);
+      if (!p) return toast("Pick a colour, underline, effect or speed first.");
+      wrapSelection(`[{${p}}]`, "[/]");
+    },
+    link: () => {
+      const src = clean($("lnSrc").value);
+      const p = props([
+        src && `src:${src}`,
+        $("lnAcOn").checked && `ac:${$("lnAc").value}`,
+        $("lnUnder").checked && "u:true",
+      ]);
+      wrapSelection(p ? `[a{${p}}]` : "[a]", "[/a]", "link");
+    },
+    audio: () => {
+      const src = clean($("auSrc").value);
+      if (!src) return toast("Add the audio file's URL first.");
+      const vol = clean($("auVol").value), start = clean($("auStart").value), end = clean($("auEnd").value);
+      const p = props([`src:${src}`, vol && vol !== "100" && `vol:${vol}%`, start && `start:${start}`, end && `end:${end}`]);
+      wrapSelection(`[audbox{${p}}]`, "[/audbox]", "listen");
+    },
+  };
+  document.querySelectorAll("[data-wrap]").forEach((btn) => btn.addEventListener("click", () => WRAPS[btn.dataset.wrap]()));
+
+  // Keyboard: Ctrl/Cmd+B bold, Ctrl/Cmd+I italic.
+  composer.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const k = e.key.toLowerCase();
+    if (k === "b" || k === "i") { e.preventDefault(); WRAPS[k === "b" ? "bold" : "italic"](); }
+  });
+
+  // Audio clips in the preview get a play button (the quote bar plays them
+  // on its own once the page has been clicked).
+  let previewAudio = null;
+  const stopPreviewAudio = () => { if (previewAudio) { previewAudio.pause(); previewAudio = null; } };
+  function playClip(src, vol, start, end, btn) {
+    stopPreviewAudio();
+    const a = new Audio(src);
+    a.volume = vol;
+    a.currentTime = start || 0;
+    a.addEventListener("timeupdate", () => { if (end && a.currentTime >= end) a.pause(); });
+    a.addEventListener("pause", () => { btn.textContent = btn.dataset.label; });
+    a.play().then(() => { btn.textContent = "■ Stop"; }).catch(() => toast("Couldn't play that audio URL."));
+    previewAudio = a;
+  }
+
+  Q.bindAnchors($("preview"));
+
+  function renderPreview() {
+    const text = composer.value;
+    try { localStorage.setItem(DRAFT_KEY, text); } catch (_) {}
+    $("lineWarn").hidden = !/[\t\r\n]/.test(text);
+    stopPreviewAudio();
+    const extra = $("previewExtra");
+    extra.innerHTML = "";
+    if (!text.trim()) { $("preview").innerHTML = `<span class="empty">Your quote shows here.</span>`; return; }
+
+    const clips = [];
+    Q.render($("preview"), text, { onAudio: (src, vol, start, end) => clips.push({ src, vol, start, end }) });
+
+    const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+    clips.forEach((c, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn sm";
+      btn.dataset.label = `▶ Audio${clips.length > 1 ? ` ${i + 1}` : ""} (${fmt(c.start || 0)}${c.end ? `–${fmt(c.end)}` : ""}, ${Math.round(c.vol * 100)}%)`;
+      btn.textContent = btn.dataset.label;
+      btn.addEventListener("click", () => previewAudio && btn.textContent !== btn.dataset.label ? stopPreviewAudio() : playClip(c.src, c.vol, c.start, c.end, btn));
+      extra.appendChild(btn);
+    });
+    if (clips.length > 1) extra.insertAdjacentHTML("beforeend", `<span>Only the first clip plays in the quote bar.</span>`);
+    const sp = $("preview").querySelector("[data-qs-sp]")?.dataset.qsSp.split(",").map(Number);
+    if (sp) extra.insertAdjacentHTML("beforeend", sp.length >= 3 && sp.every((n) => !isNaN(n))
+      ? `<span>Scroll speed: ${esc(sp[0])} normal · ${esc(sp[1])} hovering the bar · ${esc(sp[2])} hovering the text (px/s)</span>`
+      : `<span style="color:#ffd23f">Speeds need three numbers, e.g. 120,70,30 — the site ignores these.</span>`);
+  }
+
+  composer.addEventListener("input", renderPreview);
+  $("clearQuote").addEventListener("click", () => { composer.value = ""; renderPreview(); composer.focus(); });
+  $("copyQuote").addEventListener("click", async () => {
+    const text = composer.value.replace(/[\t\r\n]+/g, " ").trim();
+    if (!text) { toast("Write a quote first."); return; }
+    toast((await copy(text)) ? "📋 Quote copied — paste it into one cell of the quote sheet" : "Couldn't copy the quote.");
+  });
+
+  try { composer.value = localStorage.getItem(DRAFT_KEY) || ""; } catch (_) {}
+  renderPreview();
+
+  paintCodes();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png" />
+<title>Discovery · WannaSmile4Evr</title>
+
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<!-- Shoelace: achievement pop-ups (credits.js). -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" />
+<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/shoelace-autoloader.js"></script>
+
+<style>
+/* Same family as the Store / Settings pages: tilted panels with offset
+   accent shadows, polka dots, pill buttons, coloured by the active theme. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1150px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+.chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(3deg);
+}
+
+/* ── Sticky toolbar ── */
+.bar {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: 22px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: 0 5px 0 var(--accent-color, #f44);
+}
+.bar input, .bar select {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.4);
+  color: var(--url-color, #fff);
+  font: bold 0.82rem monospace;
+  outline: none;
+}
+.bar input { flex: 1; min-width: 170px; }
+.bar select { cursor: pointer; }
+.bar select option { background: #111; color: #fff; }
+.bar input:focus, .bar select:focus { border-color: var(--accent-color, #f44); }
+
+/* ── Grid ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.panel h2 {
+  display: inline-block;
+  font-size: clamp(18px, 2.6vh, 24px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.count { font-size: 0.8rem; opacity: 0.85; }
+.count b { color: var(--accent-color, #f44); }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 16px; }
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s, box-shadow 0.15s;
+  animation: pop-in 0.35s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 18ms);
+}
+@keyframes pop-in { from { transform: scale(0.88) rotate(-3deg); opacity: 0; } }
+.card:hover { border-color: var(--accent-color, #f44); transform: translateY(-3px) rotate(-0.8deg); }
+.card.is-mine { border-color: var(--accent-color, #f44); box-shadow: 5px 5px 0 var(--accent-color, #f44); }
+.card-top { display: flex; gap: 12px; align-items: center; }
+.card-top img {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  border: 2px solid var(--accent-color, #f44);
+  object-fit: cover;
+  background: rgba(0,0,0,0.4);
+  transform: rotate(-5deg);
+}
+.card-name { font-weight: bold; font-size: 0.95rem; line-height: 1.25; overflow-wrap: anywhere; }
+.card-author { font-size: 0.72rem; opacity: 0.75; margin-top: 3px; }
+.cat {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.1);
+  font-size: 0.68rem;
+}
+
+/* Average: dim stars with the accent ones on top, cut to the average. */
+.avg { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+.stars { position: relative; display: inline-block; font-size: 1.05rem; letter-spacing: 2px; line-height: 1; }
+.stars .base { opacity: 0.25; }
+.stars .fill { position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; color: var(--accent-color, #f44); }
+.avg-num { font-weight: bold; font-size: 1rem; }
+.avg-count { opacity: 0.7; }
+.avg.none { opacity: 0.65; font-style: italic; }
+
+/* Rating input: hover a half star to pick, click, then confirm. */
+.rate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  font-size: 0.75rem;
+}
+.rate-stars { position: relative; font-size: 1.3rem; letter-spacing: 3px; line-height: 1; cursor: pointer; user-select: none; outline: none; border-radius: 6px; }
+.rate-stars:focus-visible { box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.rate-stars .base { opacity: 0.3; }
+.rate-stars .fill { position: absolute; inset: 0 auto 0 0; overflow: hidden; white-space: nowrap; color: var(--accent-color, #f44); pointer-events: none; }
+.rate-val { min-width: 2.6em; font-weight: bold; }
+.rate.done { border-style: solid; border-color: var(--accent-color, #f44); }
+.rate.done .rate-stars { cursor: default; }
+.confirm { display: flex; gap: 6px; }
+.confirm[hidden] { display: none; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.75rem monospace;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn:hover { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--accent-color, #f44); }
+.btn.main { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.45); }
+.btn:disabled { opacity: 0.5; cursor: wait; transform: none; }
+.btn:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+.card .open { align-self: flex-start; }
+
+/* ── Loading / empty / notices ── */
+.skeleton {
+  height: 190px;
+  border-radius: 16px;
+  border: 2px dashed rgba(255,255,255,0.15);
+  background: linear-gradient(100deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.03) 70%) 0 0 / 250% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer { to { background-position: -250% 0; } }
+.empty {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+  text-align: center;
+}
+.empty.error { border-color: #ff8a8a; color: #ffb3b3; opacity: 1; }
+.notice {
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 3px solid #ff8a8a;
+  background: rgba(40,0,0,0.85);
+  box-shadow: -6px 6px 0 #ff8a8a;
+  font-weight: bold;
+}
+.notice a { color: inherit; }
+#more { height: 1px; }
+
+@media (max-width: 600px) {
+  .title { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card, .skeleton { animation: none; }
+  .card:hover, .btn:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Discovery</h1>
+      <p class="tagline">Find something new, and rate what you've tried. <span class="chip" id="ratedChip">0 rated</span></p>
+    </div>
+  </div>
+
+  <div class="bar">
+    <input id="search" type="search" placeholder="Search titles or authors…" autocomplete="off" spellcheck="false" aria-label="Search the library" />
+    <select id="category" aria-label="Category"><option value="">All categories</option></select>
+    <select id="sort" aria-label="Sort">
+      <option value="top">Top rated</option>
+      <option value="most">Most rated</option>
+      <option value="az">A–Z</option>
+      <option value="library">Library order</option>
+    </select>
+    <select id="show" aria-label="Show">
+      <option value="all">Everything</option>
+      <option value="unrated">Not rated by me</option>
+      <option value="mine">Rated by me</option>
+    </select>
+  </div>
+
+  <section class="panel" aria-labelledby="gridTitle">
+    <div class="panel-head">
+      <h2 id="gridTitle"><span class="emoji" aria-hidden="true">🧭</span>The library</h2>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="grid" id="grid" aria-busy="true"></div>
+    <div id="more"></div>
+  </section>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+<script src="../../js/credits.js"></script>
+<script>
+"use strict";
+// ── Discovery ──────────────────────────────────────────────────────────
+// The library with each asset's average rating, from DATA's
+// ?type=discovery feed (data.gs). Ratings only show on this page.
+//   GET  ?type=discovery        → { items: [...asset, rating, ratings], mine: { link: rating } }
+//   POST { type: "rate", … }    → adds one rating (1–5, halves) to column L
+// Each ticket rates an asset once; the server enforces it (RatingLogWS).
+// Ratings count toward the Critical Reviewer achievement (credits.js).
+(() => {
+  const DATA  = window.WS_ENDPOINTS.data;
+  const BATCH = 48;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (msg) => window.showToast?.(msg, 2600);
+  const FALLBACK_IMG = "../../../assets/media/favicons/favicon.png";
+
+  let items = [];      // eligible assets, library order (with .idx)
+  let mine  = {};      // link → my rating
+  let view  = [];      // filtered + sorted
+  let shown = 0;
+
+  // ── Ticket ───────────────────────────────────────────────────────────
+  const hasTicket = !window.WS_Ticket || window.WS_Ticket.approved();
+  if (!hasTicket) {
+    const n = document.createElement("p");
+    n.className = "notice";
+    n.innerHTML = `🎟️ Discovery needs an access ticket. Get yours on the <a href="../../../index.html">main WannaSmile page</a>, then come back.`;
+    document.querySelector(".bar").before(n);
+  }
+  const ticketId  = () => localStorage.getItem("ws_ticket_id") || "";
+  const ticketKey = () => localStorage.getItem("ws_ticket_key") || "";
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+  // Hidden rows, and early-access / tester builds (those live on the
+  // credits page, same rule as main.js).
+  const hidden = (a) => {
+    const s = String(a.status || "").toLowerCase(), t = String(a.type || "").toLowerCase();
+    const types = t.split("|").map((x) => x.trim().replace(/[\s_-]+/g, ""));
+    return s === "hide" || s === "hidden" || /(^|\|)\s*ignore\s*(\||$)/.test(s) || types.includes("ignore")
+      || types.some((x) => x === "earlyaccess" || x === "tester" || x === "testers");
+  };
+  const linkOf = (a) => String(a.link || "").trim();
+  const openUrl = (a) => { const l = linkOf(a); return /^[a-z][a-z0-9+.-]*:/i.test(l) ? l : `https://${l}`; };
+  const stars = (value, cls) => {
+    const pct = Math.max(0, Math.min(100, (value / 5) * 100));
+    return `<span class="${cls}"><span class="base">★★★★★</span><span class="fill" style="width:${pct}%">★★★★★</span></span>`;
+  };
+  const fmt = (n) => Number(n).toFixed(1);
+
+  function paintRatedChip() {
+    $("ratedChip").textContent = `${Object.keys(mine).length} rated`;
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────────
+  function avgHTML(a) {
+    return a.rating != null && a.ratings > 0
+      ? `<div class="avg" aria-label="Average rating ${fmt(a.rating)} from ${a.ratings}">${stars(a.rating, "stars")}<span class="avg-num">${fmt(a.rating)}</span><span class="avg-count">(${a.ratings})</span></div>`
+      : `<div class="avg none">No ratings yet</div>`;
+  }
+
+  function buildCard(a, i) {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.style.setProperty("--i", i % BATCH);
+    card.innerHTML = `
+      <div class="card-top">
+        <img alt="" loading="lazy" decoding="async" />
+        <div>
+          <div class="card-name"></div>
+          <div class="card-author"></div>
+          ${a.category ? `<span class="cat">${esc(a.category)}${a["sub-category"] ? ` · ${esc(a["sub-category"])}` : ""}</span>` : ""}
+        </div>
+      </div>
+      <div class="avg-slot">${avgHTML(a)}</div>
+      <div class="rate"></div>
+      <a class="btn open" target="_blank" rel="noopener">Open ↗</a>`;
+    const img = card.querySelector("img");
+    img.src = a.image || FALLBACK_IMG;
+    img.onerror = () => { img.onerror = null; img.src = FALLBACK_IMG; };
+    card.querySelector(".card-name").textContent = a.title || "Untitled";
+    card.querySelector(".card-author").textContent = a.author || "";
+    const open = card.querySelector(".open");
+    open.href = openUrl(a);
+    open.setAttribute("aria-label", `Open ${a.title || "this asset"} in a new tab`);
+    paintRate(card, a);
+    return card;
+  }
+
+  // The rating row: done (your rating) or a half-star picker + confirm.
+  function paintRate(card, a) {
+    const box = card.querySelector(".rate");
+    const link = linkOf(a);
+    const my = mine[link];
+    card.classList.toggle("is-mine", my != null);
+    if (my != null) {
+      box.className = "rate done";
+      box.innerHTML = `<span>You rated</span>${stars(my, "rate-stars")}<span class="rate-val">${fmt(my)}</span>`;
+      return;
+    }
+    if (!hasTicket) { box.className = "rate"; box.innerHTML = `<span>Get a ticket to rate.</span>`; return; }
+
+    box.className = "rate";
+    box.innerHTML = `
+      <span class="rate-stars" role="slider" tabindex="0" aria-label="Rate ${esc(a.title || "this asset")}" aria-valuemin="1" aria-valuemax="5" aria-valuenow="0">
+        <span class="base">★★★★★</span><span class="fill" style="width:0%">★★★★★</span>
+      </span>
+      <span class="rate-val">Rate</span>
+      <span class="confirm" hidden>
+        <button type="button" class="btn main yes">Submit</button>
+        <button type="button" class="btn no" aria-label="Cancel">✕</button>
+      </span>`;
+    const picker = box.querySelector(".rate-stars");
+    const fill   = box.querySelector(".fill");
+    const val    = box.querySelector(".rate-val");
+    const confirm = box.querySelector(".confirm");
+    let pending = 0;
+
+    const show = (v) => {
+      fill.style.width = `${(v / 5) * 100}%`;
+      val.textContent = v ? fmt(v) : "Rate";
+      picker.setAttribute("aria-valuenow", String(v));
+    };
+    const valueAt = (clientX) => {
+      const r = picker.getBoundingClientRect();
+      const halves = Math.ceil(((clientX - r.left) / r.width) * 10);
+      return Math.max(1, Math.min(5, halves / 2));
+    };
+    const pick = (v) => { pending = v; show(v); confirm.hidden = false; };
+
+    picker.addEventListener("pointermove", (e) => { if (!pending) show(valueAt(e.clientX)); });
+    picker.addEventListener("pointerleave", () => { if (!pending) show(0); });
+    picker.addEventListener("click", (e) => pick(valueAt(e.clientX)));
+    picker.addEventListener("keydown", (e) => {
+      const step = { ArrowRight: 0.5, ArrowUp: 0.5, ArrowLeft: -0.5, ArrowDown: -0.5 }[e.key];
+      if (step) { e.preventDefault(); pick(Math.max(1, Math.min(5, (pending || 2.5) + step))); }
+      if (e.key === "Enter" && pending) { e.preventDefault(); submit(); }
+    });
+    box.querySelector(".no").addEventListener("click", () => { pending = 0; show(0); confirm.hidden = true; picker.focus(); });
+    box.querySelector(".yes").addEventListener("click", () => submit());
+
+    async function submit() {
+      if (!pending) return;
+      const yes = box.querySelector(".yes");
+      yes.disabled = true; yes.textContent = "Sending…";
+      try {
+        const res = await fetch(DATA, {
+          method: "POST",
+          body: JSON.stringify({ type: "rate", ticket: ticketId(), key: ticketKey(), link, rating: pending }),
+          cache: "no-store",
+        });
+        const out = await res.json();
+        if (out.code === "already_rated") {
+          mine[link] = out.mine ?? pending;
+          toast("You've already rated this one.");
+        } else if (!out.ok) {
+          throw new Error(out.error || "The rating didn't go through.");
+        } else {
+          mine[link] = out.mine ?? pending;
+          a.rating = out.rating; a.ratings = out.ratings;
+          card.querySelector(".avg-slot").innerHTML = avgHTML(a);
+          toast(`⭐ You rated ${a.title || "it"} ${fmt(mine[link])}`);
+          window.WS_Credits?.noteRating(link, mine[link]);
+        }
+        paintRate(card, a);
+        paintRatedChip();
+      } catch (err) {
+        toast(`Couldn't send your rating: ${err.message}`);
+        yes.disabled = false; yes.textContent = "Submit";
+      }
+    }
+  }
+
+  // ── Filter, sort, render in batches ──────────────────────────────────
+  function applyView() {
+    const q = $("search").value.trim().toLowerCase();
+    const cat = $("category").value;
+    const show = $("show").value;
+    const sort = $("sort").value;
+    view = items.filter((a) => {
+      if (cat && String(a.category).trim() !== cat) return false;
+      const rated = mine[linkOf(a)] != null;
+      if (show === "mine" && !rated) return false;
+      if (show === "unrated" && rated) return false;
+      return !q || String(a.title).toLowerCase().includes(q) || String(a.author).toLowerCase().includes(q);
+    });
+    const byTitle = (x, y) => String(x.title).localeCompare(String(y.title), undefined, { sensitivity: "base", numeric: true });
+    if (sort === "top") view.sort((x, y) => (y.rating ?? -1) - (x.rating ?? -1) || y.ratings - x.ratings || x.idx - y.idx);
+    else if (sort === "most") view.sort((x, y) => y.ratings - x.ratings || (y.rating ?? -1) - (x.rating ?? -1) || x.idx - y.idx);
+    else if (sort === "az") view.sort(byTitle);
+    else view.sort((x, y) => x.idx - y.idx);
+
+    $("grid").replaceChildren();
+    $("grid").removeAttribute("aria-busy");
+    shown = 0;
+    const ratedCount = items.filter((a) => a.ratings > 0).length;
+    $("count").innerHTML = `<b>${view.length}</b> of ${items.length} · ${ratedCount} rated so far`;
+    if (!view.length) {
+      $("grid").innerHTML = `<p class="empty">Nothing matches that. Try another search or category.</p>`;
+      return;
+    }
+    renderMore();
+  }
+
+  function renderMore() {
+    const frag = document.createDocumentFragment();
+    const end = Math.min(view.length, shown + BATCH);
+    for (let i = shown; i < end; i++) frag.appendChild(buildCard(view[i], i));
+    $("grid").appendChild(frag);
+    shown = end;
+  }
+
+  new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting) && shown < view.length) renderMore();
+  }, { rootMargin: "600px 0px" }).observe($("more"));
+
+  ["search", "category", "sort", "show"].forEach((id) =>
+    $(id).addEventListener(id === "search" ? "input" : "change", debounce(applyView, id === "search" ? 180 : 0)));
+
+  // ── Load ─────────────────────────────────────────────────────────────
+  async function load() {
+    $("grid").innerHTML = Array.from({ length: 8 }, () => `<div class="skeleton" aria-hidden="true"></div>`).join("");
+    if (!hasTicket) { $("grid").innerHTML = `<p class="empty">The library shows up once you have an access ticket.</p>`; return; }
+    try {
+      await ticketReady();
+      const res = await fetch(bustCache(`${DATA}?type=discovery`), { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (!Array.isArray(json.items)) throw new Error(json.error || "Discovery isn't set up on the server yet.");
+      items = json.items.filter((a) => (a.title || linkOf(a)) && linkOf(a) && !hidden(a))
+        .map((a, idx) => ({ ...a, idx, ratings: Number(a.ratings) || 0, rating: a.rating == null || a.rating === "" ? null : Number(a.rating) }));
+      mine = json.mine && typeof json.mine === "object" ? json.mine : {};
+      // The server's list is the real one: it keeps the achievement's
+      // progress right on a new device or after clearing data.
+      window.WS_Credits?.noteRating(null, null, mine);
+
+      const cats = [...new Set(items.map((a) => String(a.category || "").trim()).filter(Boolean))].sort((x, y) => x.localeCompare(y));
+      $("category").insertAdjacentHTML("beforeend", cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join(""));
+      paintRatedChip();
+      applyView();
+    } catch (err) {
+      console.error("[Discovery] Failed to load:", err);
+      $("grid").innerHTML = `<p class="empty error">Couldn't load the library (${esc(err.message)}). Try refreshing.</p>`;
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

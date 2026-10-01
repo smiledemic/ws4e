@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/media/favicons/favicon.png" />
+<title>Store · WannaSmile4Evr</title>
+
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+
+<style>
+/* Same family as the credits page and the site's pop-ups (profile modal,
+   daily picks): tilted panels with offset accent shadows, polka dots, pill
+   buttons, all coloured by the active theme (themify.js). Activating a
+   theme here re-skins this page on the spot. */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+  /* Vertical scrolling only: the tilted panels, cards wiggling on hover
+     and the offset shadows can poke past the right edge. Set on <html>
+     only (it applies to the window), so the sticky tabs keep working. */
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  /* clip (unlike hidden) cuts off anything wider than the page without
+     making <body> a scroll box, so nothing can scroll it sideways and the
+     sticky tabs still stick. */
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+.free {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(3deg);
+}
+
+/* ── Section tabs (sticky jump links with live counts) ── */
+.tabs {
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  align-self: center;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: 0 5px 0 var(--accent-color, #f44);
+}
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 0.85rem;
+  transition: background 0.15s, transform 0.15s;
+}
+.tabs a:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px) rotate(-1.5deg); }
+.tabs a.is-current { background: var(--accent-color, #f44); color: #fff; }
+.tabs .count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.15);
+  font-size: 0.72rem;
+  text-align: center;
+}
+.tabs a.is-current .count { background: rgba(0,0,0,0.3); }
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.35deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.panel h2 {
+  display: inline-block;
+  font-size: clamp(18px, 2.6vh, 26px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.picked { font-size: 0.8rem; opacity: 0.85; }
+.picked b { color: var(--accent-color, #f44); }
+
+.tip {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0 5px;
+  border-radius: 6px;
+  border: 2px solid var(--accent-color, #f44);
+  border-bottom-width: 4px;
+  background: rgba(0,0,0,0.5);
+  font: bold 0.78rem/1.5 monospace;
+  text-align: center;
+  color: var(--url-color, #fff);
+}
+
+/* ── Item cards ── */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s, box-shadow 0.15s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.item:nth-child(odd):hover  { transform: translateY(-4px) rotate(-1.2deg); }
+.item:nth-child(even):hover { transform: translateY(-4px) rotate(1.2deg); }
+.item:hover { border-color: var(--accent-color, #f44); }
+.item.is-on { border-color: var(--accent-color, #f44); box-shadow: 5px 5px 0 var(--accent-color, #f44); }
+.item.nope { animation: nope 0.35s ease; }
+@keyframes nope { 25% { transform: translateX(-6px) rotate(-2deg); } 60% { transform: translateX(5px) rotate(1.5deg); } }
+
+/* Little tag slapped on the corner: "Active" / "Picked" / "#3". */
+.tag {
+  position: absolute;
+  top: -11px;
+  right: 12px;
+  z-index: 2;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.7rem monospace;
+  transform: rotate(4deg);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.tag[hidden] { display: none; }
+.tag.alt { right: auto; left: 12px; transform: rotate(-5deg); background: #fff; color: #111; }
+
+.item-top { display: flex; align-items: center; gap: 12px; }
+.bubble {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--wcard-bg, #ff5a00);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.35), 0 0 12px var(--wcard-shadow, rgba(255,90,0,0.5));
+  transition: transform 0.3s ease;
+}
+.item:hover .bubble { transform: rotate(-12deg) scale(1.08); }
+.bubble img { width: 28px; height: 28px; object-fit: contain; }
+.item-name { font-weight: bold; font-size: 1rem; line-height: 1.25; overflow-wrap: anywhere; }
+.item-desc { font-size: 0.8rem; opacity: 0.85; line-height: 1.5; flex: 1; }
+
+/* Theme preview: a tiny mock of the site in that theme's own colours. */
+.preview {
+  position: relative;
+  height: 108px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(0,0,0,0.5);
+  display: grid;
+  grid-template-rows: 22px 1fr 16px;
+  background: #222;
+}
+.preview > div { background-size: cover; background-position: center; }
+.pv-head { background: var(--pv-header, #111); display: flex; align-items: center; gap: 4px; padding: 0 7px; }
+.pv-head i { width: 18px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.55); }
+.pv-head i:last-child { margin-left: auto; width: 34px; height: 9px; border-radius: 5px; background: rgba(255,255,255,0.85); }
+.pv-main { background: var(--pv-main, #ccc); display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 9px 10px; }
+.pv-main i { border-radius: 5px; border: 2px solid var(--pv-accent, #f44); background: rgba(255,255,255,0.18); }
+.pv-foot { background: var(--pv-footer, #555); }
+.pv-dot {
+  position: absolute; right: 8px; bottom: 5px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--pv-accent, #f44);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.5);
+  transition: transform 0.3s ease;
+}
+.item:hover .pv-dot { transform: scale(1.25) rotate(20deg); }
+
+/* Gif pack preview: the pack's loader gif, swapped for "searching" on hover. */
+.gifbox {
+  height: 108px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 2px) 0 0 / 14px 14px,
+    rgba(0,0,0,0.35);
+}
+.gifbox img { max-width: 86%; max-height: 92px; object-fit: contain; }
+/* Pixel-art packs are tiny; blow them up crisply to fill the box. */
+.gifbox img.pixelated { image-rendering: pixelated; height: 84px; width: auto; }
+.gifbox .none { font-size: 2rem; opacity: 0.5; }
+
+/* Frame preview: the frame drawn over the visitor's own picture, exactly as
+   the profile card does (frame above the picture, scaled up and centred). */
+.framebox {
+  height: 108px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 2px) 0 0 / 14px 14px,
+    rgba(0,0,0,0.35);
+}
+.framebox .fpv { position: relative; width: 68px; height: 68px; }
+.framebox .fpv .pic { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: rgba(255,255,255,0.1); }
+.framebox .fpv .pf-frame {
+  position: absolute; top: 50%; left: 50%; z-index: 2;
+  width: calc(100% * var(--pf-frame-scale, 1.2)); height: calc(100% * var(--pf-frame-scale, 1.2));
+  max-width: none; transform: translate(-50%, -50%); object-fit: contain; pointer-events: none;
+}
+.framebox .fpv .pf-frame[hidden] { display: none; }
+.framebox .none { font-size: 2rem; opacity: 0.5; }
+
+/* Wrapper preview: the image scaled to the box's height, width cut off,
+   at full opacity (visitors set their own opacity in the profile menu). */
+.wrapperbox {
+  position: relative;
+  height: 108px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.6);
+}
+.wrapperbox .wbg { position: absolute; inset: 0; background: center / auto 100% no-repeat; }
+.wrapperbox .none { position: relative; font-size: 2rem; opacity: 0.5; }
+
+/* Cursor pack preview: every cursor in the pack, labelled, on a light
+   chip so dark line art stays visible whatever the theme. */
+.cursorbox {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 2px dashed rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.35);
+}
+.cursorbox figure { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.cursorbox .chip {
+  width: 100%;
+  max-width: 44px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.88);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.45);
+  transition: transform 0.2s ease;
+}
+.cursorbox figure:nth-child(odd) .chip { transform: rotate(-4deg); }
+.cursorbox figure:nth-child(even) .chip { transform: rotate(3deg); }
+.item:hover .cursorbox .chip { transform: scale(1.1); }
+.cursorbox img { width: 72%; height: 72%; object-fit: contain; }
+.cursorbox figcaption { font-size: 0.65rem; opacity: 0.8; }
+
+/* On/off switch in the Cursors panel header. */
+.btn.switch { flex: none; }
+
+/* ── Buttons ── */
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.8rem monospace;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--accent-color, #f44);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s;
+}
+.btn:hover { transform: translateY(-2px) rotate(-1.5deg); }
+.btn:active { transform: translateY(3px); box-shadow: 0 0 0 var(--accent-color, #f44); }
+.btn.is-on { background: var(--accent-color, #f44); color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.45); }
+.btn:focus-visible, .tabs a:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+/* ── Loading / empty / error ── */
+.skeleton {
+  height: 170px;
+  border-radius: 16px;
+  border: 2px dashed rgba(255,255,255,0.15);
+  background: linear-gradient(100deg, rgba(255,255,255,0.03) 30%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.03) 70%) 0 0 / 250% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer { to { background-position: -250% 0; } }
+.empty {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+.empty.error { border-color: #ff8a8a; color: #ffb3b3; opacity: 1; }
+.notice {
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 3px solid #ff8a8a;
+  background: rgba(40,0,0,0.85);
+  box-shadow: -6px 6px 0 #ff8a8a;
+  font-weight: bold;
+  transform: rotate(-0.5deg);
+}
+.notice a { color: inherit; }
+
+@media (max-width: 600px) {
+  .title { text-align: left; }
+  .tabs { border-radius: 18px; }
+  .panel:nth-of-type(even) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .item, .skeleton { animation: none; }
+  .item:hover, .item:hover .bubble, .item:hover .pv-dot, .btn:hover, .tabs a:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Store</h1>
+      <p class="tagline">Make WannaSmile yours. <span class="free">Everything's free</span></p>
+    </div>
+  </div>
+
+  <nav class="tabs" aria-label="Store sections">
+    <a href="#widgets">🫧 Widgets <span class="count" id="countWidgets">0</span></a>
+    <a href="#themes">🎨 Themes <span class="count" id="countThemes">0/9</span></a>
+    <a href="#gifpacks">🌀 Gif packs <span class="count" id="countGifpacks">0</span></a>
+    <a href="#frames">🖼️ Frames <span class="count" id="countFrames">none</span></a>
+    <a href="#wrappers">🪟 Wrappers <span class="count" id="countWrappers">none</span></a>
+    <a href="#cursors">🖱️ Cursors <span class="count" id="countCursors">off</span></a>
+  </nav>
+
+  <section class="panel" id="widgets" aria-labelledby="widgetsTitle">
+    <div class="panel-head">
+      <h2 id="widgetsTitle"><span class="emoji" aria-hidden="true">🫧</span>Widgets</h2>
+      <span class="picked" id="widgetsPicked"></span>
+    </div>
+    <p class="tip">Picked widgets show up as floating bubbles on the main site. Got more than one? Press <kbd>+</kbd> / <kbd>-</kbd> to cycle between them. The one you leave minimizes instead of closing, and comes right back when you cycle to it again.</p>
+    <div class="grid" id="widgetGrid"></div>
+  </section>
+
+  <section class="panel" id="themes" aria-labelledby="themesTitle">
+    <div class="panel-head">
+      <h2 id="themesTitle"><span class="emoji" aria-hidden="true">🎨</span>Themes</h2>
+      <span class="picked" id="themesPicked"></span>
+    </div>
+    <p class="tip">Pick up to 9 themes as shortcuts, then press <kbd>1</kbd>–<kbd>9</kbd> on the main site to jump straight to one (<kbd>0</kbd> / <kbd>R</kbd> always goes back to Redux). <b>Activate</b> makes a theme the one that loads next time on this device, and dresses this page in it right now.</p>
+    <div class="grid" id="themeGrid"></div>
+  </section>
+
+  <section class="panel" id="gifpacks" aria-labelledby="gifpacksTitle">
+    <div class="panel-head">
+      <h2 id="gifpacksTitle"><span class="emoji" aria-hidden="true">🌀</span>Gif packs</h2>
+      <span class="picked" id="gifpacksPicked"></span>
+    </div>
+    <p class="tip">Gif packs are the loading, searching and crash animations. They're separate from themes, so mix and match freely. Add as many as you like to the cycle and press <kbd>[</kbd> / <kbd>]</kbd> on the main site to swap between them. <b>Activate</b> puts one in use right now. Hover a card to see it search.</p>
+    <div class="grid" id="gifpackGrid"></div>
+  </section>
+
+  <section class="panel" id="frames" aria-labelledby="framesTitle">
+    <div class="panel-head">
+      <h2 id="framesTitle"><span class="emoji" aria-hidden="true">🖼️</span>Frames</h2>
+      <span class="picked" id="framesPicked"></span>
+    </div>
+    <p class="tip">Frames sit on top of your profile picture, in the header and on your profile card. <b>Equip</b> one to wear it right away, or press it again to take it off. You can also pick or upload frames from the picture menu on the main site.</p>
+    <div class="grid" id="frameGrid"></div>
+  </section>
+
+  <section class="panel" id="wrappers" aria-labelledby="wrappersTitle">
+    <div class="panel-head">
+      <h2 id="wrappersTitle"><span class="emoji" aria-hidden="true">🪟</span>Wrappers</h2>
+      <span class="picked" id="wrappersPicked"></span>
+    </div>
+    <p class="tip">A wrapper is the background of your profile card (the banner stays on top of it). <b>Equip</b> one to use it right away, or press it again to take it off. Set how see-through it is with the Wrapper opacity slider in your profile's gear menu.</p>
+    <div class="grid" id="wrapperGrid"></div>
+  </section>
+
+  <section class="panel" id="cursors" aria-labelledby="cursorsTitle">
+    <div class="panel-head">
+      <h2 id="cursorsTitle"><span class="emoji" aria-hidden="true">🖱️</span>Cursors</h2>
+      <button type="button" class="btn switch" id="cursorSwitch"></button>
+    </div>
+    <p class="tip">Custom cursors swap your mouse pointer for a hand-drawn set, everywhere on WannaSmile. They're off until you turn them on. <b>Activate</b> a pack to switch it on and use it right away. Text boxes keep the normal typing cursor.</p>
+    <div class="grid" id="cursorGrid"></div>
+  </section>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/frames.js"></script>
+<script src="../../js/wrappers.js"></script>
+<script src="../../js/cursors.js"></script>
+<script>
+"use strict";
+// ── Store ──────────────────────────────────────────────────────────────
+// Widgets, themes and gif packs, each fetched fresh from the Apps Script
+// backend (bustCache/ticketReady from utils.js add the access ticket).
+// What gets picked here is read by the main site:
+//   ws_selected_widgets   widget ids, pick order          -> widgets.js
+//   ws_selected_themes    up to 9 theme ids (keys 1–9)    -> ui.js
+//   selectedTheme         the active theme                -> themify.js
+//   ws_theme_cache        { id: row } for instant paint   -> themify.js
+//   ws_selected_gifpacks  gif pack cycle order ([ / ])    -> ui.js
+//   ws_active_gifpack     the active gif pack             -> themify.js
+//   pfpFrame              the equipped picture frame URL  -> profile.js / frames.js
+//   pfpWrapper            the equipped card wrapper URL   -> profile.js / wrappers.js
+//   ws_cursors_enabled    custom cursors on ("true")      -> cursors.js
+//   ws_active_cursor      the active cursor pack          -> cursors.js
+(() => {
+  // Widgets, themes and gif packs all come from the CUST project (endpoints.js).
+  const CUST_URL = window.WS_ENDPOINTS.cust;
+
+  const WIDGET_SEL_KEY  = "ws_selected_widgets";
+  const THEME_SEL_KEY   = "ws_selected_themes";
+  const THEME_ACTIVE    = "selectedTheme";
+  const THEME_CACHE_KEY = "ws_theme_cache";
+  const GIF_SEL_KEY     = "ws_selected_gifpacks";
+  const GIF_ACTIVE      = "ws_active_gifpack";
+  const FRAME_KEY       = "pfpFrame";
+  const WRAPPER_KEY     = "pfpWrapper";
+  const THEME_MAX       = 9;
+  const DEFAULT_ID      = "redux";
+
+  // ThemifyWS columns: name | id | type | header-bg | quote-bg | main-bg | footer-bg | … | accent-color (11)
+  const COL = { name: 0, id: 1, type: 2, header: 3, main: 5, footer: 6, accent: 11 };
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const readList = (k) => { try { const v = JSON.parse(localStorage.getItem(k) || "[]"); return Array.isArray(v) ? v : []; } catch { return []; } };
+  const writeList = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const toast = (msg) => window.showToast?.(msg, 2400);
+
+  // ── Ticket: the ticket screens live on the main page; this one has none.
+  const hasTicket = !window.WS_Ticket || window.WS_Ticket.approved();
+  if (!hasTicket) {
+    const note = document.createElement("p");
+    note.className = "notice";
+    note.innerHTML = `🎟️ You need an access ticket first. Get yours on the <a href="../../../index.html">main WannaSmile page</a>, then come back here.`;
+    document.querySelector(".tabs").before(note);
+  }
+
+  async function getJSON(type) {
+    if (!hasTicket) throw new Error("No approved access ticket yet.");
+    await ticketReady();
+    const res = await fetch(bustCache(`${CUST_URL}?type=${type}`), { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!Array.isArray(json)) {
+      const err = new Error(json?.error || "Feed did not return a list.");
+      err.ticket = json?.ticket;   // "unknown" / "missing" when the ticket was refused
+      throw err;
+    }
+    return json;
+  }
+
+  function skeletons(grid, n = 4) {
+    grid.innerHTML = Array.from({ length: n }, () => `<div class="skeleton" aria-hidden="true"></div>`).join("");
+    grid.setAttribute("aria-busy", "true");
+  }
+  function message(grid, text, error) {
+    grid.innerHTML = `<p class="empty${error ? " error" : ""}">${esc(text)}</p>`;
+    grid.removeAttribute("aria-busy");
+  }
+
+  function makeCard(i) {
+    const card = document.createElement("article");
+    card.className = "item";
+    card.style.setProperty("--i", i);
+    return card;
+  }
+  function makeBtn(label) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn";
+    b.textContent = label;
+    return b;
+  }
+  function setBtn(btn, on, onLabel, offLabel) {
+    btn.classList.toggle("is-on", on);
+    btn.textContent = on ? onLabel : offLabel;
+    btn.setAttribute("aria-pressed", String(on));
+  }
+  function nope(card) {
+    card.classList.remove("nope");
+    void card.offsetWidth;
+    card.classList.add("nope");
+  }
+
+  // Header counts + the "n picked" line on each panel.
+  function updateCounts() {
+    const w = readList(WIDGET_SEL_KEY).length, t = readList(THEME_SEL_KEY).length, g = readList(GIF_SEL_KEY).length;
+    $("countWidgets").textContent = w;
+    $("countThemes").textContent = `${t}/${THEME_MAX}`;
+    $("countGifpacks").textContent = g;
+    const fr = window.WSFrames?.saved() || "";
+    const frName = fr ? (fr.startsWith("data:") ? "yours" : (window.WSFrames.meta(fr).name || "on")) : "";
+    $("countFrames").textContent = frName || "none";
+    $("framesPicked").innerHTML = frName ? `wearing <b>${esc(frName)}</b>` : "no frame equipped";
+    const wr = window.WSWrappers?.saved() || "";
+    const wrName = wr ? (window.WSWrappers.meta(wr).name || "on") : "";
+    $("countWrappers").textContent = wrName || "none";
+    $("wrappersPicked").innerHTML = wrName ? `using <b>${esc(wrName)}</b>` : "no wrapper equipped";
+    $("widgetsPicked").innerHTML  = w ? `<b>${w}</b> picked` : "none picked yet";
+    $("themesPicked").innerHTML   = `<b>${t}</b> of ${THEME_MAX} shortcut slots used`;
+    $("gifpacksPicked").innerHTML = g ? `<b>${g}</b> in your cycle` : "none in your cycle yet";
+  }
+
+  const shadowFrom = (c) => {
+    const m = String(c).match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    return m ? `rgba(${m[1]},${m[2]},${m[3]},0.55)` : c;
+  };
+
+  // ── Widgets ──────────────────────────────────────────────────────────
+  const widgetPainters = [];
+  const paintWidgets = () => widgetPainters.forEach((paint) => paint());
+
+  function renderWidgets(widgets) {
+    const grid = $("widgetGrid");
+    grid.removeAttribute("aria-busy");
+    if (!widgets.length) return message(grid, "No widgets available right now. Check back soon!");
+    grid.replaceChildren();
+    widgetPainters.length = 0;
+
+    widgets.forEach((w, i) => {
+      const name = w["widget-name"] || w.id || "Untitled widget";
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag" hidden>Picked</span>
+        <div class="item-top">
+          <div class="bubble"><img alt="" /></div>
+          <div class="item-name"></div>
+        </div>
+        <p class="item-desc"></p>
+        <div class="btns"></div>`;
+      const bubble = card.querySelector(".bubble");
+      const bg = w["background-color"] || "#ff5a00";
+      bubble.style.setProperty("--wcard-bg", bg);
+      bubble.style.setProperty("--wcard-shadow", shadowFrom(w["shadow-color"] || bg));
+      const icon = card.querySelector(".bubble img");
+      if (w["widget-icon"]) icon.src = w["widget-icon"]; else icon.remove();
+      card.querySelector(".item-name").textContent = name;
+      card.querySelector(".item-desc").textContent = w.description || "";
+
+      const tag = card.querySelector(".tag");
+      const btn = makeBtn("");
+      const paint = () => {
+        const on = readList(WIDGET_SEL_KEY).includes(w.id);
+        setBtn(btn, on, "✓ Picked", "+ Pick it");
+        card.classList.toggle("is-on", on);
+        tag.hidden = !on;
+      };
+      btn.addEventListener("click", () => {
+        const sel = readList(WIDGET_SEL_KEY);
+        const at = sel.indexOf(w.id);
+        if (at === -1) sel.push(w.id); else sel.splice(at, 1);
+        writeList(WIDGET_SEL_KEY, sel);
+        paint(); updateCounts();
+        toast(at === -1 ? `🫧 ${name} added to your widgets` : `${name} removed`);
+      });
+      card.querySelector(".btns").append(btn);
+      widgetPainters.push(paint);
+      paint();
+      grid.appendChild(card);
+    });
+  }
+
+  // ── Themes ───────────────────────────────────────────────────────────
+  const themeCards = [];
+
+  function cacheThemeRow(id, row) {
+    let cache;
+    try { cache = JSON.parse(localStorage.getItem(THEME_CACHE_KEY) || "{}"); } catch { cache = {}; }
+    if (!cache || typeof cache !== "object" || Array.isArray(cache)) cache = {};
+    cache[id] = row;
+    try { localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  }
+
+  // Sheet cell -> CSS background value, the way themify.js reads it
+  // (handles encoded cells and local copies of site URLs).
+  async function cssVal(raw) {
+    try { if (typeof _normalizeSheetVal === "function") return await _normalizeSheetVal(raw); } catch {}
+    return String(raw || "").trim();
+  }
+
+  function paintThemes() {
+    const sel = readList(THEME_SEL_KEY);
+    const active = (localStorage.getItem(THEME_ACTIVE) || DEFAULT_ID).trim().toLowerCase();
+    themeCards.forEach(({ id, card, tag, slot, pickBtn, activeBtn }) => {
+      const at = sel.indexOf(id);
+      const isActive = active === id;
+      setBtn(pickBtn, at !== -1, `✓ Key ${at + 1}`, "+ Shortcut");
+      setBtn(activeBtn, isActive, "★ Active", "Activate");
+      card.classList.toggle("is-on", isActive);
+      tag.hidden = !isActive;
+      slot.hidden = at === -1;
+      slot.textContent = `key ${at + 1}`;
+    });
+  }
+
+  function renderThemes(rows) {
+    const grid = $("themeGrid");
+    grid.removeAttribute("aria-busy");
+    const eligible = rows.filter((r) =>
+      String(r[COL.id] || "").trim() && String(r[COL.type] || "").trim().toLowerCase() !== "soon");
+    if (!eligible.length) return message(grid, "No themes available right now. Check back soon!");
+    grid.replaceChildren();
+    themeCards.length = 0;
+
+    eligible.forEach((row, i) => {
+      const id   = String(row[COL.id]).trim().toLowerCase();
+      const name = String(row[COL.name] || id);
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag">Active</span>
+        <span class="tag alt" hidden></span>
+        <div class="preview" aria-hidden="true">
+          <div class="pv-head"><i></i><i></i><i></i></div>
+          <div class="pv-main"><i></i><i></i><i></i><i></i></div>
+          <div class="pv-foot"></div>
+          <span class="pv-dot"></span>
+        </div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = name;
+
+      const pv = card.querySelector(".preview");
+      const accent = String(row[COL.accent] || "").trim() || "#ff4444";
+      pv.style.setProperty("--pv-accent", accent);
+      [["--pv-header", COL.header], ["--pv-main", COL.main], ["--pv-footer", COL.footer]].forEach(async ([v, col]) => {
+        const val = await cssVal(row[col]);
+        if (val) pv.style.setProperty(v, val);
+      });
+
+      const pickBtn = makeBtn("");
+      const activeBtn = makeBtn("");
+      pickBtn.addEventListener("click", () => {
+        const sel = readList(THEME_SEL_KEY);
+        const at = sel.indexOf(id);
+        if (at !== -1) {
+          sel.splice(at, 1);
+          toast(`${name} removed from your shortcuts`);
+        } else if (sel.length >= THEME_MAX) {
+          nope(card);
+          toast(`All ${THEME_MAX} shortcut keys are taken. Remove one first.`);
+          return;
+        } else {
+          sel.push(id);
+          toast(`🎨 ${name} is on key ${sel.length}`);
+        }
+        writeList(THEME_SEL_KEY, sel);
+        paintThemes(); updateCounts();
+      });
+      activeBtn.addEventListener("click", () => {
+        cacheThemeRow(id, row);
+        if (window.ThemifySheets) window.ThemifySheets.applyTheme(id);   // saves selectedTheme + re-skins this page
+        else { try { localStorage.setItem(THEME_ACTIVE, id); } catch {} }
+        paintThemes();
+        toast(`🎨 ${name} is now your theme`);
+      });
+      card.querySelector(".btns").append(pickBtn, activeBtn);
+      themeCards.push({ id, card, tag: card.querySelector(".tag"), slot: card.querySelector(".tag.alt"), pickBtn, activeBtn });
+      grid.appendChild(card);
+    });
+    paintThemes();
+  }
+
+  // ── Gif packs ────────────────────────────────────────────────────────
+  // Every pack lives at mediabaseWS gif-packs/<id>/<state>.gif.
+  const GIF_BASE = "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/";
+  const gifCards = [];
+
+  function paintGifPacks() {
+    const sel = readList(GIF_SEL_KEY);
+    const active = (localStorage.getItem(GIF_ACTIVE) || DEFAULT_ID).trim().toLowerCase();
+    gifCards.forEach(({ id, card, tag, pickBtn, activeBtn }) => {
+      const on = sel.includes(id), isActive = active === id;
+      setBtn(pickBtn, on, "✓ Cycling", "+ Cycle");
+      setBtn(activeBtn, isActive, "★ Active", "Activate");
+      card.classList.toggle("is-on", isActive);
+      tag.hidden = !isActive;
+    });
+  }
+
+  function renderGifPacks(rows) {
+    const grid = $("gifpackGrid");
+    grid.removeAttribute("aria-busy");
+    const packs = rows
+      .map((r) => ({ row: r, id: String(r.id || "").trim().toLowerCase(), name: String(r.name || r.id || "").trim() }))
+      .filter((p) => p.id);
+    if (!packs.length) return message(grid, "No gif packs available right now. Check back soon!");
+    grid.replaceChildren();
+    gifCards.length = 0;
+
+    packs.forEach(({ row, id, name }, i) => {
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag">Active</span>
+        <div class="gifbox"><img alt="" decoding="async" /></div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = name;
+
+      // "width|height|pixelated" per state; pixelated unless it says false.
+      const pixelated = (state) => String(row[state] || "").split("|")[2]?.trim().toLowerCase() !== "false";
+      const src = (state) => new URL(`${encodeURIComponent(id)}/${state}.gif`, GIF_BASE).href;
+      const img = card.querySelector(".gifbox img");
+      const show = (state) => {
+        img.classList.toggle("pixelated", pixelated(state));
+        img.src = src(state);
+      };
+      img.alt = `${name} loading animation`;
+      img.onerror = () => {
+        if (!img.src.endsWith("/loading.gif")) return show("loading");
+        img.replaceWith(Object.assign(document.createElement("span"), { className: "none", textContent: "🌀" }));
+      };
+      show("loading");
+      if (row.searching) {
+        card.addEventListener("mouseenter", () => show("searching"));
+        card.addEventListener("mouseleave", () => show("loading"));
+      }
+
+      const pickBtn = makeBtn("");
+      const activeBtn = makeBtn("");
+      pickBtn.addEventListener("click", () => {
+        const sel = readList(GIF_SEL_KEY);
+        const at = sel.indexOf(id);
+        if (at === -1) sel.push(id); else sel.splice(at, 1);
+        writeList(GIF_SEL_KEY, sel);
+        paintGifPacks(); updateCounts();
+        toast(at === -1 ? `🌀 ${name} added to your cycle` : `${name} left your cycle`);
+      });
+      activeBtn.addEventListener("click", () => {
+        try { localStorage.setItem(GIF_ACTIVE, id); } catch {}
+        paintGifPacks();
+        toast(`🌀 ${name} is now your gif pack`);
+      });
+      card.querySelector(".btns").append(pickBtn, activeBtn);
+      gifCards.push({ id, card, tag: card.querySelector(".tag"), pickBtn, activeBtn });
+      grid.appendChild(card);
+    });
+    paintGifPacks();
+  }
+
+  // ── Frames ───────────────────────────────────────────────────────────
+  // FramesWS (?type=frames) via frames.js; art at mediabaseWS frames/<id>/splash.png.
+  const frameCards = [];
+  const SAMPLE_PIC = "data:image/svg+xml;utf8," + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='120' height='120' fill='#5b6b8c'/><circle cx='60' cy='46' r='22' fill='#f2c99a'/><rect x='24' y='74' width='72' height='60' rx='30' fill='#f2c99a'/></svg>");
+  const ownPic = () => { try { return localStorage.getItem("profilePic") || SAMPLE_PIC; } catch { return SAMPLE_PIC; } };
+
+  function paintFrames() {
+    const cur = window.WSFrames?.saved() || "";
+    frameCards.forEach(({ url, card, tag, equipBtn }) => {
+      const on = cur === url;
+      setBtn(equipBtn, on, "★ Equipped", "Equip");
+      card.classList.toggle("is-on", on);
+      tag.hidden = !on;
+    });
+  }
+
+  function renderFrames(list) {
+    const grid = $("frameGrid");
+    grid.removeAttribute("aria-busy");
+    if (!list.length) return message(grid, "No frames available right now. Check back soon!");
+    grid.replaceChildren();
+    frameCards.length = 0;
+
+    list.forEach((f, i) => {
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag">Equipped</span>
+        ${f.animated ? '<span class="tag alt">Animated</span>' : ""}
+        <div class="framebox"><div class="fpv"><img class="pic" alt="" /><img class="pf-frame" alt="" draggable="false" /></div></div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = f.name;
+      card.querySelector(".pic").src = ownPic();
+      const fr = card.querySelector(".pf-frame");
+      fr.alt = `${f.name} frame`;
+      fr.style.setProperty("--pf-frame-scale", String(f.scale));
+      if (f.pixelated) fr.style.imageRendering = "pixelated";
+      if (f.blend) fr.style.mixBlendMode = f.blend;
+      fr.onerror = () => {
+        fr.replaceWith(Object.assign(document.createElement("span"), { className: "none", textContent: "🖼️" }));
+        card.querySelector(".pic")?.remove();
+      };
+      fr.src = window.toMediabase ? window.toMediabase(f.url) : f.url;
+
+      const equipBtn = makeBtn("");
+      equipBtn.addEventListener("click", () => {
+        const on = (window.WSFrames.saved() === f.url);
+        try { if (on) localStorage.removeItem(FRAME_KEY); else localStorage.setItem(FRAME_KEY, f.url); } catch {}
+        paintFrames(); updateCounts();
+        toast(on ? `🖼️ ${f.name} taken off` : `🖼️ ${f.name} equipped`);
+      });
+      card.querySelector(".btns").append(equipBtn);
+      frameCards.push({ url: f.url, card, tag: card.querySelector(".tag"), equipBtn });
+      grid.appendChild(card);
+    });
+    paintFrames();
+    updateCounts();
+  }
+
+  // ── Wrappers ─────────────────────────────────────────────────────────
+  // WrapperWS (?type=wrappers) via wrappers.js; art at mediabaseWS wrappers/<id>/splash.<ext>.
+  const wrapperCards = [];
+
+  function paintWrappers() {
+    const cur = window.WSWrappers?.saved() || "";
+    wrapperCards.forEach(({ url, card, tag, equipBtn }) => {
+      const on = cur === url;
+      setBtn(equipBtn, on, "★ Equipped", "Equip");
+      card.classList.toggle("is-on", on);
+      tag.hidden = !on;
+    });
+  }
+
+  function renderWrappers(list) {
+    const grid = $("wrapperGrid");
+    grid.removeAttribute("aria-busy");
+    if (!list.length) return message(grid, "No wrappers available right now. Check back soon!");
+    grid.replaceChildren();
+    wrapperCards.length = 0;
+
+    list.forEach((w, i) => {
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag">Equipped</span>
+        ${w.animated ? '<span class="tag alt">Animated</span>' : ""}
+        <div class="wrapperbox"><div class="wbg"></div></div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = w.name;
+      const bg = card.querySelector(".wbg");
+      const src = window.toMediabase ? window.toMediabase(w.url) : w.url;
+      bg.style.backgroundImage = `url("${src}")`;
+      if (w.pixelated) bg.style.imageRendering = "pixelated";
+      const probe = new Image();
+      probe.onerror = () => { bg.replaceWith(Object.assign(document.createElement("span"), { className: "none", textContent: "🪟" })); };
+      probe.src = src;
+
+      const equipBtn = makeBtn("");
+      equipBtn.addEventListener("click", () => {
+        const on = (window.WSWrappers.saved() === w.url);
+        try { if (on) localStorage.removeItem(WRAPPER_KEY); else localStorage.setItem(WRAPPER_KEY, w.url); } catch {}
+        paintWrappers(); updateCounts();
+        toast(on ? `🪟 ${w.name} taken off` : `🪟 ${w.name} equipped`);
+      });
+      card.querySelector(".btns").append(equipBtn);
+      wrapperCards.push({ url: w.url, card, tag: card.querySelector(".tag"), equipBtn });
+      grid.appendChild(card);
+    });
+    paintWrappers();
+    updateCounts();
+  }
+
+  // ── Cursors ──────────────────────────────────────────────────────────
+  // Packs are local (cursors.js lists them), so no fetch or ticket needed.
+  const CURSOR_ON_KEY     = "ws_cursors_enabled";
+  const CURSOR_ACTIVE_KEY = "ws_active_cursor";
+  const CURSOR_LABELS     = { normal: "normal", point: "point", click: "click", grab: "grab", deny: "nope" };
+  const cursorCards = [];
+
+  function paintCursors() {
+    const C = window.WSCursors;
+    if (!C) return;
+    const on = C.isEnabled(), active = C.getActive();
+    const sw = $("cursorSwitch");
+    setBtn(sw, on, "✓ Custom cursors on", "Custom cursors off");
+    $("countCursors").textContent = on ? "on" : "off";
+    cursorCards.forEach(({ id, card, tag, activeBtn }) => {
+      const isActive = on && active === id;
+      setBtn(activeBtn, isActive, "★ Active", "Activate");
+      card.classList.toggle("is-on", isActive);
+      tag.hidden = !isActive;
+    });
+  }
+
+  function renderCursors() {
+    const grid = $("cursorGrid");
+    const C = window.WSCursors;
+    if (!C) return message(grid, "Cursors couldn't load. Try refreshing.", true);
+    const packs = C.list();
+    if (!packs.length) return message(grid, "No cursor packs yet. Check back soon!");
+    grid.replaceChildren();
+
+    packs.forEach(({ id, name }, i) => {
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag" hidden>Active</span>
+        <div class="cursorbox"></div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = name;
+
+      const box = card.querySelector(".cursorbox");
+      C.states.forEach((state) => {
+        const fig = document.createElement("figure");
+        fig.innerHTML = `<span class="chip"><img alt="" decoding="async" /></span><figcaption></figcaption>`;
+        fig.querySelector("img").alt = `${name} ${CURSOR_LABELS[state]} cursor`;
+        fig.querySelector("figcaption").textContent = CURSOR_LABELS[state];
+        box.appendChild(fig);
+      });
+      C.preview(id).then((urls) => {
+        box.querySelectorAll("img").forEach((img, n) => { img.src = urls[C.states[n]]; });
+      });
+
+      const activeBtn = makeBtn("");
+      activeBtn.addEventListener("click", () => {
+        if (C.isEnabled() && C.getActive() === id) {
+          C.setEnabled(false);
+          toast("🖱️ Custom cursors off");
+        } else {
+          C.setActive(id);
+          C.setEnabled(true);
+          toast(`🖱️ ${name} cursors are on`);
+        }
+        paintCursors();
+      });
+      card.querySelector(".btns").append(activeBtn);
+      cursorCards.push({ id, card, tag: card.querySelector(".tag"), activeBtn });
+      grid.appendChild(card);
+    });
+    paintCursors();
+  }
+
+  $("cursorSwitch").addEventListener("click", () => {
+    const C = window.WSCursors;
+    if (!C) return;
+    const on = !C.isEnabled();
+    C.setEnabled(on);
+    paintCursors();
+    toast(on ? `🖱️ ${C.getName(C.getActive())} cursors are on` : "🖱️ Custom cursors off");
+  });
+
+  // ── Load ─────────────────────────────────────────────────────────────
+  function load(type, gridId, render, what) {
+    const grid = $(gridId);
+    skeletons(grid);
+    getJSON(type).then(render).catch((err) => {
+      console.error(`[Store] Failed to load ${what}:`, err);
+      const why = !hasTicket ? `${what[0].toUpperCase() + what.slice(1)} show up once you have an access ticket.`
+        : err.ticket ? `The store didn't accept your access ticket (${err.ticket}), so ${what} can't load. Open the main page to re-check it, then refresh.`
+        : `Couldn't load ${what} right now (${err.message}). Try refreshing.`;
+      message(grid, why, hasTicket);
+    });
+  }
+  load("widgets",  "widgetGrid",  renderWidgets,  "widgets");
+  load("themes",   "themeGrid",   renderThemes,   "themes");
+  load("gifpacks", "gifpackGrid", renderGifPacks, "gif packs");
+  {
+    // Frames go through frames.js (parses rows, caches the list for the profile modal).
+    const grid = $("frameGrid");
+    skeletons(grid);
+    (hasTicket ? window.WSFrames.load() : Promise.reject(new Error("No approved access ticket yet."))).then(renderFrames).catch((err) => {
+      console.error("[Store] Failed to load frames:", err);
+      message(grid, !hasTicket ? "Frames show up once you have an access ticket."
+        : err.ticket ? `The store didn't accept your access ticket (${err.ticket}), so frames can't load. Open the main page to re-check it, then refresh.`
+        : `Couldn't load frames right now (${err.message}). Try refreshing.`, hasTicket);
+    });
+  }
+  {
+    // Wrappers go through wrappers.js (parses rows, caches the list for the profile modal).
+    const grid = $("wrapperGrid");
+    skeletons(grid);
+    (hasTicket ? window.WSWrappers.load() : Promise.reject(new Error("No approved access ticket yet."))).then(renderWrappers).catch((err) => {
+      console.error("[Store] Failed to load wrappers:", err);
+      message(grid, !hasTicket ? "Wrappers show up once you have an access ticket."
+        : err.ticket ? `The store didn't accept your access ticket (${err.ticket}), so wrappers can't load. Open the main page to re-check it, then refresh.`
+        : `Couldn't load wrappers right now (${err.message}). Try refreshing.`, hasTicket);
+    });
+  }
+  renderCursors();
+  updateCounts();
+
+  // Highlight the tab for the section in view.
+  const tabs = [...document.querySelectorAll(".tabs a")];
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      tabs.forEach((a) => a.classList.toggle("is-current", a.getAttribute("href") === `#${e.target.id}`));
+    });
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  document.querySelectorAll("section.panel").forEach((s) => io.observe(s));
+
+  // Picks made in another tab (or the main site) show up here too.
+  window.addEventListener("storage", (e) => {
+    if (![WIDGET_SEL_KEY, THEME_SEL_KEY, THEME_ACTIVE, GIF_SEL_KEY, GIF_ACTIVE, FRAME_KEY, WRAPPER_KEY, CURSOR_ON_KEY, CURSOR_ACTIVE_KEY].includes(e.key)) return;
+    updateCounts(); paintWidgets(); paintThemes(); paintGifPacks(); paintFrames(); paintWrappers(); paintCursors();
+  });
+})();
+</script>
+</body>
+</html>

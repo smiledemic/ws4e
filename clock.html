@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef4f1">
+  <title>World Clock | WannaSmile</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172b28;
+      --muted: #657a74;
+      --line: #d6e2dc;
+      --paper: #f3f7f4;
+      --white: #fff;
+      --green: #145f4a;
+      --green-soft: #dcefe5;
+      --lime: #c8ef69;
+      --orange: #e77949;
+      --shadow: 0 18px 50px rgba(27, 59, 48, .08);
+    }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; margin: 0; background: var(--paper); color: var(--ink); font-family: "Avenir Next", "Segoe UI", sans-serif; }
+    button, input, select { font: inherit; }
+    a { color: inherit; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px max(22px, calc((100vw - 1180px) / 2)); border-bottom: 1px solid var(--line); background: rgba(255,255,255,.76); }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; text-decoration: none; }
+    .brand-mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px 10px 10px 3px; background: var(--green); color: white; font-size: 17px; }
+    .topnav { display: flex; gap: 8px; font-size: 13px; font-weight: 700; }
+    .topnav a { padding: 9px 12px; border-radius: 999px; color: var(--muted); text-decoration: none; }
+    .topnav a[aria-current="page"] { background: var(--green-soft); color: var(--green); }
+    main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 46px 0 64px; }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 34px; }
+    .kicker { margin: 0 0 10px; color: var(--green); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    h1 { max-width: 680px; margin: 0; font-size: clamp(34px, 5vw, 58px); line-height: 1.02; letter-spacing: -.035em; }
+    .intro-copy { max-width: 420px; margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
+    .local-clock { min-width: 230px; padding: 17px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); box-shadow: var(--shadow); }
+    .local-clock span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .local-clock strong { display: block; margin-top: 4px; font-size: 29px; font-variant-numeric: tabular-nums; }
+    .workspace { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 28px; align-items: start; }
+    .controls { display: grid; gap: 20px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); box-shadow: var(--shadow); }
+    .control-block + .control-block { padding-top: 18px; border-top: 1px solid var(--line); }
+    h2 { margin: 0 0 13px; font-size: 17px; }
+    .hint { margin: -5px 0 13px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    label { display: block; margin: 0 0 7px; font-size: 12px; font-weight: 800; }
+    input, select { width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid #baccc3; border-radius: 9px; background: #fbfdfb; color: var(--ink); }
+    input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid #8dc59c; outline-offset: 2px; }
+    .field + .field { margin-top: 12px; }
+    .action { display: inline-flex; min-height: 43px; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; border: 0; border-radius: 9px; background: var(--green); color: white; font-weight: 800; cursor: pointer; }
+    .action:hover { background: #0d4d3c; }
+    .action.secondary { border: 1px solid var(--line); background: white; color: var(--green); }
+    .action.secondary:hover { background: var(--green-soft); }
+    .action.full { width: 100%; margin-top: 10px; }
+    .format-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .format-button { min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--muted); font-size: 13px; font-weight: 800; cursor: pointer; }
+    .format-button[aria-pressed="true"] { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+    .status { min-height: 18px; margin: 10px 0 0; color: #9b4d32; font-size: 12px; line-height: 1.4; }
+    .zone-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 0 14px; }
+    .zone-heading h2 { margin: 0; font-size: 22px; }
+    .zone-heading p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .zone-list { display: grid; gap: 11px; }
+    .zone { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 18px; padding: 18px 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--white); box-shadow: 0 7px 20px rgba(27,59,48,.035); }
+    .zone-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .zone-name { overflow: hidden; font-size: 15px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .zone-offset { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: #edf3ef; color: var(--muted); font-size: 10px; font-weight: 800; }
+    .remove-zone { grid-column: 2; grid-row: 1 / span 2; align-self: start; min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .remove-zone:hover { border-color: #cc7257; color: #9b4d32; }
+    .zone-time { margin-top: 5px; font-size: clamp(27px, 4vw, 40px); font-weight: 750; letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1; }
+    .zone-date { margin: 7px 0 0; color: var(--muted); font-size: 13px; }
+    .reference { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px 16px; padding-top: 11px; border-top: 1px solid #edf1ee; color: var(--muted); font-size: 12px; }
+    .reference strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .reference[hidden] { display: none; }
+    .empty { padding: 32px; border: 1px dashed #b6c9bf; border-radius: 14px; color: var(--muted); text-align: center; }
+    footer { padding: 18px 20px 26px; color: var(--muted); font-size: 12px; text-align: center; }
+    @media (max-width: 800px) { .workspace { grid-template-columns: 1fr; } .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .control-block + .control-block { padding-top: 0; border-top: 0; } .control-block:nth-child(n+3) { padding-top: 18px; border-top: 1px solid var(--line); } }
+    @media (max-width: 560px) { .topbar { padding: 12px 16px; } .topnav a { padding: 8px 9px; } main { width: calc(100% - 28px); padding-top: 30px; } .intro { display: grid; gap: 20px; } .local-clock { width: 100%; } .workspace { gap: 20px; } .controls { grid-template-columns: 1fr; padding: 17px; } .control-block + .control-block, .control-block:nth-child(n+3) { padding-top: 17px; border-top: 1px solid var(--line); } .zone { padding: 15px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">W</span><span>WannaSmile tools</span></a>
+    <nav class="topnav" aria-label="Tools"><a href="clock.html" aria-current="page">World clock</a><a href="weather.html">Weather</a></nav>
+  </header>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="kicker">WORLD CLOCK</p><h1 id="page-title">Time, everywhere.</h1><p class="intro-copy">Keep an eye on live local times, then compare a moment across the places that matter.</p></div>
+      <div class="local-clock" aria-live="off"><span id="local-zone-label">Your local time</span><strong id="local-time">--:--:--</strong></div>
+    </section>
+    <div class="workspace">
+      <aside class="controls" aria-label="Clock controls">
+        <section class="control-block">
+          <h2>Compare a time</h2>
+          <p class="hint">Enter a date and time in its source timezone.</p>
+          <div class="field"><label for="reference-time">Reference date &amp; time</label><input id="reference-time" type="datetime-local" step="1"></div>
+          <div class="field"><label for="reference-zone">Source timezone</label><input id="reference-zone" list="timezone-options" autocomplete="off" spellcheck="false"></div>
+          <button class="action secondary full" id="use-now" type="button">Use current moment</button>
+          <p class="status" id="reference-status" role="status" aria-live="polite"></p>
+        </section>
+        <section class="control-block">
+          <h2>Add a timezone</h2>
+          <p class="hint">Search by city, region, or UTC offset.</p>
+          <form id="add-zone-form">
+            <label for="zone-input">Timezone name</label>
+            <input id="zone-input" list="timezone-options" placeholder="e.g. Asia/Tokyo" autocomplete="off" spellcheck="false" required>
+            <button class="action full" type="submit">Add timezone</button>
+          </form>
+          <p class="status" id="zone-status" role="status" aria-live="polite"></p>
+        </section>
+        <section class="control-block">
+          <h2>Clock format</h2>
+          <div class="format-row" role="group" aria-label="Clock format">
+            <button class="format-button" type="button" data-format="24" aria-pressed="true">24-hour</button>
+            <button class="format-button" type="button" data-format="12" aria-pressed="false">12-hour</button>
+          </div>
+          <label style="margin-top:14px" for="show-reference">Show comparison on clocks</label>
+          <select id="show-reference"><option value="yes">On</option><option value="no">Off</option></select>
+        </section>
+      </aside>
+      <section aria-labelledby="zone-title">
+        <div class="zone-heading"><div><h2 id="zone-title">Your places</h2><p>Live clocks update every second.</p></div></div>
+        <div class="zone-list" id="zone-list" aria-live="off"></div>
+        <datalist id="timezone-options"></datalist>
+      </section>
+    </div>
+  </main>
+  <footer>Timezone conversion runs in your browser. Your selected places stay on this device.</footer>
+  <script>
+    (() => {
+      "use strict";
+      const STORAGE_KEY = "ws_world_clock_zones_v1";
+      const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const zoneList = document.getElementById("zone-list");
+      const timeInput = document.getElementById("reference-time");
+      const sourceInput = document.getElementById("reference-zone");
+      const referenceStatus = document.getElementById("reference-status");
+      const zoneStatus = document.getElementById("zone-status");
+      const clockFormatButtons = [...document.querySelectorAll("[data-format]")];
+      const pad = value => String(value).padStart(2, "0");
+      let sourceZone = localZone;
+      let use24Hour = true;
+      let showReference = true;
+      let zones = readZones();
+
+      function validZone(zone) {
+        try { new Intl.DateTimeFormat("en", { timeZone: zone }); return true; } catch (_) { return false; }
+      }
+      function allZones() {
+        let values = [];
+        try { values = Intl.supportedValuesOf("timeZone"); } catch (_) {}
+        return [...new Set(["UTC", localZone, ...values])].sort((a, b) => a.localeCompare(b));
+      }
+      function fillDatalist() {
+        const list = document.getElementById("timezone-options");
+        const fragment = document.createDocumentFragment();
+        allZones().forEach(zone => { const option = document.createElement("option"); option.value = zone; fragment.append(option); });
+        list.append(fragment);
+      }
+      function readZones() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+          if (Array.isArray(saved)) {
+            const valid = [...new Set(saved.filter(zone => typeof zone === "string" && validZone(zone)))].slice(0, 12);
+            if (valid.length) return valid;
+          }
+        } catch (_) {}
+        return [...new Set([localZone, "America/New_York", "Europe/London", "Asia/Tokyo"])].filter(validZone);
+      }
+      function saveZones() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(zones)); } catch (_) {}
+      }
+      function partsAt(date, zone) {
+        const parts = new Intl.DateTimeFormat("en", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(date);
+        return Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, Number(part.value)]));
+      }
+      function dateTimeValue(date, zone) {
+        const p = partsAt(date, zone);
+        return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:${pad(p.second)}`;
+      }
+      function wallTimeToDate(value, zone) {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (!match || !validZone(zone)) return null;
+        const desired = { year: +match[1], month: +match[2], day: +match[3], hour: +match[4], minute: +match[5], second: +(match[6] || 0) };
+        const target = Date.UTC(desired.year, desired.month - 1, desired.day, desired.hour, desired.minute, desired.second);
+        let stamp = target;
+        for (let i = 0; i < 5; i++) {
+          const shown = partsAt(new Date(stamp), zone);
+          stamp += target - Date.UTC(shown.year, shown.month - 1, shown.day, shown.hour, shown.minute, shown.second);
+        }
+        const check = partsAt(new Date(stamp), zone);
+        return Object.keys(desired).every(key => desired[key] === check[key]) ? new Date(stamp) : null;
+      }
+      function formatClock(date, zone) {
+        return new Intl.DateTimeFormat(undefined, { timeZone: zone, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: !use24Hour }).format(date);
+      }
+      function formatDate(date, zone) {
+        return new Intl.DateTimeFormat(undefined, { timeZone: zone, weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(date);
+      }
+      function offsetLabel(date, zone) {
+        return new Intl.DateTimeFormat("en", { timeZone: zone, timeZoneName: "shortOffset", hour: "2-digit" }).formatToParts(date).find(part => part.type === "timeZoneName")?.value || "UTC";
+      }
+      function dayDifference(date, fromZone, toZone) {
+        const from = partsAt(date, fromZone);
+        const to = partsAt(date, toZone);
+        return Math.round((Date.UTC(to.year, to.month - 1, to.day) - Date.UTC(from.year, from.month - 1, from.day)) / 86400000);
+      }
+      function dayLabel(offset) {
+        if (offset === 0) return "same calendar day";
+        return `${Math.abs(offset)} day${Math.abs(offset) === 1 ? "" : "s"} ${offset > 0 ? "ahead" : "behind"}`;
+      }
+      function referenceDate() {
+        const date = wallTimeToDate(timeInput.value, sourceZone);
+        referenceStatus.textContent = date ? "" : "That local time does not exist in this timezone (daylight-saving change).";
+        return date;
+      }
+      function render() {
+        const now = new Date();
+        document.getElementById("local-time").textContent = formatClock(now, localZone);
+        document.getElementById("local-zone-label").textContent = `Your local time · ${localZone}`;
+        const ref = referenceDate();
+        zoneList.replaceChildren();
+        if (!zones.length) {
+          const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "Add a timezone to start your world clock."; zoneList.append(empty); return;
+        }
+        const fragment = document.createDocumentFragment();
+        zones.forEach((zone, index) => {
+          const card = document.createElement("article"); card.className = "zone";
+          const info = document.createElement("div");
+          const top = document.createElement("div"); top.className = "zone-top";
+          const name = document.createElement("span"); name.className = "zone-name"; name.textContent = zone.replaceAll("_", " ");
+          const offset = document.createElement("span"); offset.className = "zone-offset"; offset.textContent = offsetLabel(now, zone);
+          top.append(name, offset);
+          const time = document.createElement("div"); time.className = "zone-time"; time.textContent = formatClock(now, zone);
+          const date = document.createElement("p"); date.className = "zone-date"; date.textContent = formatDate(now, zone);
+          info.append(top, time, date);
+          const remove = document.createElement("button"); remove.type = "button"; remove.className = "remove-zone"; remove.textContent = "Remove"; remove.setAttribute("aria-label", `Remove ${zone}`);
+          remove.addEventListener("click", () => { zones.splice(index, 1); saveZones(); render(); });
+          card.append(info, remove);
+          const reference = document.createElement("div"); reference.className = "reference"; reference.hidden = !showReference;
+          const label = document.createElement("span"); label.textContent = `At ${sourceZone.replaceAll("_", " ")}`;
+          const result = document.createElement("strong"); result.textContent = ref ? `${formatClock(ref, zone)} · ${dayLabel(dayDifference(ref, sourceZone, zone))}` : "Enter a valid reference time";
+          reference.append(label, result); card.append(reference);
+          fragment.append(card);
+        });
+        zoneList.append(fragment);
+      }
+
+      fillDatalist();
+      zones = [...new Set(zones)].slice(0, 12);
+      sourceInput.value = sourceZone;
+      timeInput.value = dateTimeValue(new Date(), sourceZone);
+      document.getElementById("add-zone-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const input = document.getElementById("zone-input");
+        const zone = input.value.trim();
+        if (!validZone(zone)) { zoneStatus.textContent = "Choose a valid IANA timezone from the suggestions."; return; }
+        if (zones.includes(zone)) { zoneStatus.textContent = "That timezone is already on your list."; return; }
+        if (zones.length >= 12) { zoneStatus.textContent = "You can keep up to 12 places on the clock."; return; }
+        zones.push(zone); input.value = ""; zoneStatus.textContent = ""; saveZones(); render();
+      });
+      document.getElementById("use-now").addEventListener("click", () => { timeInput.value = dateTimeValue(new Date(), sourceZone); render(); });
+      timeInput.addEventListener("input", render);
+      sourceInput.addEventListener("change", () => {
+        const next = sourceInput.value.trim();
+        if (!validZone(next)) { sourceInput.value = sourceZone; referenceStatus.textContent = "Choose a valid IANA timezone."; return; }
+        const previousInstant = wallTimeToDate(timeInput.value, sourceZone);
+        sourceZone = next;
+        if (previousInstant) timeInput.value = dateTimeValue(previousInstant, sourceZone);
+        render();
+      });
+      document.getElementById("show-reference").addEventListener("change", event => { showReference = event.target.value === "yes"; render(); });
+      clockFormatButtons.forEach(button => button.addEventListener("click", () => {
+        use24Hour = button.dataset.format === "24";
+        clockFormatButtons.forEach(other => other.setAttribute("aria-pressed", String(other === button)));
+        render();
+      }));
+      render();
+      setInterval(render, 250);
+    })();
+  </script>
+</body>
+</html>

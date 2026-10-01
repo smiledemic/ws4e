@@ -1,0 +1,25 @@
+# Layout mockup images — kept locally for now, not ready to commit.
+.documentation/pages/layout/assets/
+
+# Native desktop launcher (source + build artifacts + vendored WebView2
+# SDK) — local tooling for now, not part of the published site.
+launcher/
+WannaSmileExe.zip
+description.txt
+
+# Exported data files (ExportData.ws) hold an access ticket + key; the seal
+# only stops casual edits, so never publish them.
+*.ws
+
+# Internal docs (Apps Script sources, notes) and editor settings stay local.
+.documentation/
+.vscode/
+
+# Staged icons waiting to go up to the R2 bucket (icons3/, icons4/, …): the
+# site shows them only when run locally, so they never get published.
+/icons[0-9]*/
+
+# General media (banners, profile, stickers, themes) lives in its own repo,
+# github.com/wannasmile4evr/mediabaseWS, served from raw.githubusercontent.com
+# (see system/js/endpoints.js). This is just the local working copy.
+/.mediabaseWS/

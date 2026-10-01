@@ -1,0 +1,472 @@
+/* ── First-visit tutorial (see system/js/tutorial.js) ─────────
+   Four blurred "shades" surround a hole over the real control, a pulsing
+   ring outlines it, and a coach card in the daily-picks style explains the
+   step. The setup step is the same card, centred, over a full blur. */
+
+html.wst-lock { overflow: hidden; }
+/* The floating "⬆ Top" button would sit on the cards once the footer part
+   of the tour scrolls the page down; it's no use mid-tour anyway. */
+html.wst-lock #toTopBtn { display: none !important; }
+/* …except the tour's last step, which is about that button: locked for a
+   moment (disabled), then pulsing once it's clickable. */
+html.wst-lock.wst-show-top #toTopBtn { display: block !important; }
+html.wst-lock.wst-show-top #toTopBtn:disabled { opacity: 0.45 !important; cursor: default; }
+#toTopBtn.wst-go { opacity: 1 !important; animation: wst-go-pulse 1.1s ease-in-out infinite; }
+@keyframes wst-go-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-color, #f44); transform: translateX(-50%) scale(1); }
+  50%      { box-shadow: 0 0 0 8px transparent;              transform: translateX(-50%) scale(1.08); }
+}
+
+/* The finish: confetti over everything, never in the way of clicks. */
+.wst-confetti { position: fixed; inset: 0; z-index: 1000000; pointer-events: none; }
+
+.wst-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  pointer-events: none;           /* only shades + card take clicks */
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.wst-root[hidden] { display: none; }
+.wst-root.is-open { opacity: 1; }
+
+.wst-shade {
+  position: fixed;
+  pointer-events: auto;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 2px) 0 0 / 22px 22px fixed,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(7px) saturate(1.2);
+  -webkit-backdrop-filter: blur(7px) saturate(1.2);
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+.wst-ring {
+  position: fixed;
+  border: 3px solid var(--accent-color, #f44);
+  border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease, opacity 0.2s ease;
+}
+.wst-ring.is-on {
+  opacity: 1;
+  animation: wst-pulse 1.4s ease-in-out infinite;
+}
+/* Clickable frame over the ring's padding (tutorial.js forwards its clicks
+   to the nearest control). The evenodd clip cuts out the middle, so the
+   real control underneath still gets its own hover and clicks. */
+.wst-hit {
+  position: fixed;
+  display: none;
+  pointer-events: auto;
+  cursor: pointer;
+  --p: var(--wst-pad, 8px);
+  clip-path: polygon(evenodd,
+    0 0, 100% 0, 100% 100%, 0 100%, 0 0,
+    var(--p) var(--p), var(--p) calc(100% - var(--p)),
+    calc(100% - var(--p)) calc(100% - var(--p)), calc(100% - var(--p)) var(--p), var(--p) var(--p));
+}
+.wst-hit.is-on { display: block; }
+@keyframes wst-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-color, #f44); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* ── Coach card ── */
+.wst-card {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  pointer-events: auto;
+  padding: 22px 20px 16px;
+  border-radius: 22px 18px 24px 16px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.92));
+  box-shadow: 7px 7px 0 var(--accent-color, #f44);
+  outline: none;
+  transform: rotate(-0.6deg);
+  transition: top 0.3s ease, left 0.3s ease;
+}
+/* The card itself doesn't scroll, so the sticker can hang over its edge;
+   this inner wrapper does. The 6px pad keeps focus rings and scaled
+   avatars from being clipped. */
+.wst-scroll {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  margin: -6px;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+.wst-card.is-popping { animation: wst-pop 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes wst-pop { from { transform: scale(0.7) rotate(-5deg); opacity: 0; } }
+
+/* Setup step: bigger and centred over a full blur. */
+.wst-root.is-centered .wst-card {
+  width: min(560px, calc(100vw - 24px));
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) rotate(-0.6deg);
+  padding: 26px 24px 18px;
+}
+.wst-root.is-centered .wst-card.is-popping { animation-name: wst-pop-center; }
+@keyframes wst-pop-center { from { transform: translate(-50%, -50%) scale(0.7) rotate(-5deg); opacity: 0; } }
+
+.wst-sticker {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  transform: rotate(12deg);
+  filter: drop-shadow(-2px 3px 0 rgba(0, 0, 0, 0.5));
+  pointer-events: none;
+  z-index: 999;                   /* above everything else in the card */
+}
+.wst-sticker[hidden] { display: none; }
+
+/* Progress: the five steps are a real sequence, so they're numbered. */
+.wst-dots {
+  list-style: none;
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.wst-dots li {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  font-size: 0.7rem;
+  font-weight: bold;
+  opacity: 0.6;
+}
+.wst-dots li.is-done { background: var(--accent-color, #f44); border-color: var(--accent-color, #f44); color: #fff; opacity: 1; }
+.wst-dots li.is-current { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); opacity: 1; transform: scale(1.15); }
+
+.wst-title {
+  display: inline-block;
+  margin-right: 44px;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  color: var(--url-color, #fff);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.wst-root.is-centered .wst-title { font-size: 1.5rem; }
+
+.wst-text { margin-top: 10px; font-size: 0.85rem; line-height: 1.5; }
+.wst-text p + * { margin-top: 12px; }
+.wst-text b { color: var(--accent-color, #f44); }
+.wst-text kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 2px solid var(--accent-color, #f44);
+  border-bottom-width: 4px;
+  background: #fafafa;
+  color: #111;
+  font: bold 0.75rem/1.4 monospace;
+  text-align: center;
+}
+
+.wst-status {
+  margin-top: 12px;
+  font-size: 0.8rem;
+  opacity: 0.85;
+  min-height: 1.2em;
+}
+.wst-status:empty { display: none; }
+.wst-status.is-ok { color: var(--accent-color, #f44); font-weight: bold; opacity: 1; }
+.wst-status.is-ok::before { content: "✓ "; }
+
+.wst-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.wst-actions-left { display: flex; align-items: center; gap: 10px; }
+.wst-actions .wst-next { margin-left: auto; }
+.wst-actions:has(.wst-next[hidden]):has(.wst-skip[hidden]):has(.wst-back[hidden]) { display: none; }
+.wst-skip[hidden], .wst-back[hidden] { display: none; }
+
+.wst-back {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.8rem monospace;
+  cursor: pointer;
+}
+.wst-back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); }
+
+/* Header tour: the card drops down from the spotlighted item, with a little
+   pointer at it (tutorial.js sets data-side and --caret-x). */
+.wst-card.is-dropdown { overflow: visible; }
+.wst-card.is-dropdown[data-side="below"]::before,
+.wst-card.is-dropdown[data-side="above"]::before {
+  content: "";
+  position: absolute;
+  left: var(--caret-x, 50%);
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: var(--aside-bg, #000);
+  border: 3px solid var(--accent-color, #f44);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+.wst-card.is-dropdown[data-side="below"]::before { top: -10px; border-right: none; border-bottom: none; }
+.wst-card.is-dropdown[data-side="above"]::before { bottom: -10px; border-left: none; border-top: none; }
+
+.wst-next {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.85rem monospace;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.45);
+  animation: wst-pop 0.35s cubic-bezier(.3, 1.6, .5, 1);
+  transition: transform 0.12s ease;
+}
+.wst-next[hidden] { display: none; }
+.wst-next:hover { transform: translateY(-2px) rotate(-2deg); }
+.wst-next:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45); }
+
+/* ── Setup form ── */
+.wst-setup {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.wst-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border: 2px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  transform: rotate(-2deg);
+}
+.wst-preview-img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--accent-color, #f44);
+  background: rgba(255, 255, 255, 0.08);
+}
+.wst-preview-img.is-empty { opacity: 0.35; filter: grayscale(1); }
+.wst-preview-name {
+  max-width: 100%;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wst-preview-name.is-empty { opacity: 0.45; font-weight: normal; }
+
+.wst-fields label,
+.wst-fields .wst-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: bold;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+.wst-fields .wst-label { margin-top: 14px; }
+
+.wst-fields input[type="text"],
+.wst-fields textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--url-color, #fff);
+  font: 0.95rem monospace;
+  transition: border-color 0.15s ease;
+}
+.wst-fields textarea { resize: vertical; min-height: 3.2em; font-size: 0.85rem; }
+
+/* "Create your ticket": Grade + Role side by side, optional-field tags,
+   and the paragraph's character counter. */
+.wst-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wst-fields select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--url-color, #fff);
+  font: 0.9rem monospace;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.wst-fields select:focus { outline: none; border-color: var(--accent-color, #f44); }
+.wst-fields select option { background: #111; color: #fff; }
+.wst-optional { font-weight: normal; opacity: 0.6; }
+.wst-count { display: block; margin-top: 4px; text-align: right; font-size: 0.7rem; opacity: 0.55; }
+.wst-fields input[type="text"]:focus,
+.wst-fields textarea:focus { outline: none; border-color: var(--accent-color, #f44); }
+.wst-fields input[type="text"]::placeholder,
+.wst-fields textarea::placeholder { color: inherit; opacity: 0.45; }
+
+/* ── Ticket screens (tutorial.js; state in ticket.js) ── */
+.wst-ticket {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 2px dashed var(--accent-color, #f44);
+  border-radius: 12px;
+  transform: rotate(-1deg);
+}
+.wst-ticket-label { font-size: 0.65rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.08em; }
+.wst-ticket-id {
+  flex: 1;
+  font: bold 1.15rem monospace;
+  letter-spacing: 0.06em;
+  color: var(--accent-color, #f44);
+  user-select: all;
+}
+.wst-copy {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: var(--url-color, #fff);
+  font: bold 0.72rem monospace;
+  cursor: pointer;
+}
+.wst-copy:hover { color: var(--accent-color, #f44); }
+.wst-note { font-size: 0.75rem; opacity: 0.7; }
+.wst-text .wst-alt { margin-top: 10px; }
+.wst-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--url-color, #fff);
+  font: 0.75rem monospace;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  opacity: 0.75;
+  cursor: pointer;
+}
+.wst-link:hover { opacity: 1; color: var(--accent-color, #f44); }
+.wst-dots[hidden] { display: none; }
+
+/* "I have a data file" pop-up, over the ticket card (tutorial.js). */
+.wst-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.wst-modal[hidden] { display: none; }
+.wst-modal.is-open { opacity: 1; }
+
+.wst-modal-panel {
+  position: relative;
+  width: min(400px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 22px 20px 16px;
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.94));
+  box-shadow: -7px 7px 0 var(--accent-color, #f44);
+  transform: rotate(0.8deg);
+  outline: none;
+}
+.wst-modal.is-open .wst-modal-panel { animation: wst-pop 0.4s cubic-bezier(.3, 1.6, .5, 1); }
+.wst-modal-panel .wst-title { margin-right: 40px; }
+
+.wst-modal-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
+  color: var(--url-color, #fff);
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.wst-modal-close:hover { transform: rotate(90deg); color: var(--accent-color, #f44); }
+.wst-modal-panel .wst-next:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+.wst-avatars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 8px;
+}
+.wst-avatar {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.08) center / cover no-repeat;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.wst-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%; }
+.wst-avatar:hover { transform: scale(1.1) rotate(-6deg); }
+.wst-avatar.is-chosen {
+  border-color: var(--accent-color, #f44);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.6);
+}
+.wst-avatar.is-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  color: var(--url-color, #fff);
+  font: bold 1rem/1 monospace;
+}
+.wst-upload-text { font-size: 0.55rem; font-weight: normal; margin-top: 2px; }
+.wst-avatar.is-upload.has-image > span { display: none; }
+.wst-avatar.is-upload.is-chosen { border-style: solid; }
+
+.wst-card button:focus-visible,
+.wst-card a:focus-visible { box-shadow: 0 0 0 3px var(--accent-color, #f44); }
+.wst-avatar:focus-visible { border-color: var(--url-color, #fff); }
+
+@media (max-width: 520px) {
+  .wst-setup { grid-template-columns: 1fr; }
+  .wst-preview { flex-direction: row; justify-content: flex-start; padding: 8px 12px; transform: none; }
+  .wst-preview-img { width: 56px; height: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wst-root, .wst-shade, .wst-ring, .wst-card, .wst-avatar, .wst-next { transition: none; }
+  .wst-ring.is-on, .wst-card.is-popping, .wst-next { animation: none; }
+}
