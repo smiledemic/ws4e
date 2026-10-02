@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/favicons/favicon.png" />
+<title>Updates &amp; Changes · WannaSmile4Evr</title>
+
+<style>
+/* Same family as the Store, Settings and DMCA pages: tilted panels with
+   offset accent shadows, polka dots, pill buttons, all coloured by the
+   active theme (themify.js). */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+a { color: inherit; }
+.wrap { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+.title { text-align: right; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 44px);
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.tagline { margin-top: 6px; opacity: 0.8; font-size: 0.85rem; }
+
+/* ── Banner ── */
+.news-banner {
+  display: block;
+  width: 100%;
+  height: clamp(110px, 26vh, 260px);
+  object-fit: cover;
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  box-shadow: 8px 8px 0 var(--accent-color, #f44);
+}
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel:nth-of-type(even) { transform: rotate(0.35deg); box-shadow: 8px 8px 0 var(--accent-color, #f44); }
+.panel h2 {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: clamp(18px, 2.6vh, 26px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.panel p { font-size: 0.85rem; line-height: 1.7; }
+.panel p + p { margin-top: 10px; }
+
+/* ── The change list ── */
+.changes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.change {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 14px 14px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s;
+  animation: pop-in 0.4s cubic-bezier(.3, 1.6, .5, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes pop-in { from { transform: scale(0.85) rotate(-3deg); opacity: 0; } }
+.change:nth-child(odd):hover  { transform: translateY(-4px) rotate(-1.2deg); border-color: var(--accent-color, #f44); }
+.change:nth-child(even):hover { transform: translateY(-4px) rotate(1.2deg); border-color: var(--accent-color, #f44); }
+.change-icon {
+  position: absolute;
+  top: -14px;
+  left: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font-weight: bold;
+  transform: rotate(-8deg);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.change h3 { font-size: 0.95rem; line-height: 1.3; }
+.change p { font-size: 0.8rem; line-height: 1.6; opacity: 0.88; }
+
+.tip {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+/* ── Return home (end of page) ── */
+.home-btn {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 14px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--accent-color, #f44);
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  font: bold 0.95rem monospace;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.home-btn:hover { transform: translateY(-2px) rotate(-1deg); }
+.home-btn:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,0.45); }
+.home-btn:focus-visible, .back:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+@media (max-width: 600px) {
+  .title { text-align: left; }
+  .panel:nth-of-type(even) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .change { animation: none; }
+  .change:hover, .home-btn:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+    <div class="title">
+      <h1>Updates &amp; Changes</h1>
+      <p class="tagline">What's new on WannaSmile4Evr.</p>
+    </div>
+  </div>
+
+  <img class="news-banner" src="../../../assets/images/pages/release/wannasmile-updated-banner.png" alt="WannaSmile update banner" />
+
+  <section class="panel" aria-labelledby="changesTitle">
+    <h2 id="changesTitle"><span class="emoji" aria-hidden="true">✨</span>This release</h2>
+    <div class="changes">
+      <article class="change" style="--i: 0">
+        <span class="change-icon" aria-hidden="true">📄</span>
+        <h3>20 pages!</h3>
+        <p>The asset grid now spans 20 full pages, 75 assets each — more to browse, search and favorite than ever before.</p>
+      </article>
+      <article class="change" style="--i: 1">
+        <span class="change-icon" aria-hidden="true">⚡</span>
+        <h3>Faster loading time</h3>
+        <p>Fetches to DATA now retry with backoff instead of failing outright on a slow or dropped connection, so the asset grid comes up reliably and quicker.</p>
+      </article>
+      <article class="change" style="--i: 2">
+        <span class="change-icon" aria-hidden="true">🎟️</span>
+        <h3>Renewed auto approve until 150 users!</h3>
+        <p>New access tickets are approved instantly again, up to the first 150 — no waiting on manual approval until that cap is reached.</p>
+      </article>
+      <article class="change" style="--i: 3">
+        <span class="change-icon" aria-hidden="true">🖼️</span>
+        <h3>Wrapper &amp; frames coming next week!</h3>
+        <p>Card wrappers and profile picture frames are next up — new ways to decorate your profile and your favorite cards.</p>
+      </article>
+    </div>
+    <p class="tip">This page reflects the same announcement shown in the "Updates &amp; changes" modal (☰ menu) — read it here any time.</p>
+  </section>
+
+  <a class="home-btn" href="../../../index.html">← Return to home</a>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+</body>
+</html>

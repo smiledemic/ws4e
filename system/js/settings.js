@@ -75,7 +75,7 @@ function _syncCloakBtn() {
   if (!btn) return;
   const img = btn.querySelector("img");
   if (img) {
-    img.src = isCloakOn() ? "assets/media/images/cloak-btn/cloaked.png" : "assets/media/images/cloak-btn/visable.png";
+    img.src = isCloakOn() ? "assets/images/cloak-btn/cloaked.png" : "assets/images/cloak-btn/visable.png";
   }
 }
 
@@ -94,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const img = btn.querySelector("img");
   if (img) {
-    img.src = isCloakOn() ? "assets/media/images/cloak-btn/cloaked.png" : "assets/media/images/cloak-btn/visable.png";
+    img.src = isCloakOn() ? "assets/images/cloak-btn/cloaked.png" : "assets/images/cloak-btn/visable.png";
   }
   btn.title = "Toggle tab cloak";
   btn.addEventListener("click", toggleCloak);

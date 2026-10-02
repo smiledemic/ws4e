@@ -614,7 +614,7 @@
       title: "Create your ticket",
       html: `
         <p>WannaSmile is invite-only for now. ${autoApprove === true
-          ? "You're early: the first 50 tickets get in straight away."
+          ? "You're early: the first 150 tickets get in straight away."
           : "Tickets are checked by hand, so yours may take a little while."} You only get one, so make it count.</p>
         <div class="wst-fields">
           <label for="wstTicketName">Username</label>
@@ -702,7 +702,7 @@
         return;
       }
       stepCreateTicket.draft = null;
-      showTicketStatus(res.status, res.existing ? "You'd already asked from this browser, and that ticket's approved." : "You're one of the first 50, so you're in.");
+      showTicketStatus(res.status, res.existing ? "You'd already asked from this browser, and that ticket's approved." : "You're one of the first 150, so you're in.");
     };
 
     [nameEl, realEl, reasonEl].forEach((el) => el.addEventListener("input", validate));

@@ -1,5 +1,0 @@
-click
-deny
-grab
-normal
-point

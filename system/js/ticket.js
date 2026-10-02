@@ -29,7 +29,7 @@
 // One ticket per person: requests carry a random per-browser client id (the
 // server hands a repeat request the same ticket back and refuses a name
 // that already has one), and once this browser has asked (ws_ticket_requested)
-// the tutorial never offers the request form again. The first 50 tickets
+// the tutorial never offers the request form again. The first 150 tickets
 // ever are approved on the spot by the server. (Bad words in the name or
 // reason are caught in the browser before sending — see wordfilter.js.)
 //
@@ -125,7 +125,7 @@
     return res;
   }
 
-  // Whether a new ticket would be approved on the spot (the first-50 rule).
+  // Whether a new ticket would be approved on the spot (the first-150 rule).
   // The tutorial uses it to pick the order: profile first while it's true,
   // ticket first once it isn't. null = couldn't tell (old backend/offline).
   async function info() {

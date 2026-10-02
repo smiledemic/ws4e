@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link id="favicon" rel="icon" href="assets/media/favicons/favicon.png"/>
+<link id="favicon" rel="icon" href="assets/favicons/favicon.png"/>
 <title>WannaSmile4Evr</title>
 
 <!-- Asset data comes from Apps Script, which redirects to
@@ -55,6 +55,7 @@
 <link rel="stylesheet" href="system/css/refer.css" />
 <link rel="stylesheet" href="system/css/tutorial.css" />
 <link rel="stylesheet" href="system/css/profile.css" />
+<link rel="stylesheet" href="system/css/updates.css" />
 
 <script>
 // Preload whichever theme is actually cached as active (see themify.js's
@@ -146,41 +147,41 @@
       <!-- <a href="#" title="Coming soon">Ads and Partnerships</a> -->
       <div class="pages-anchor">
         <button class="arrowleft" onclick="prevPage()">
-          <img src="assets/media/images/header-arrows/left-arrow.png" />
+          <img src="assets/images/header-arrows/left-arrow.png" />
         </button>
         <span class="page-indicator">...</span>
         <button class="arrowright" onclick="nextPage()">
-          <img src="assets/media/images/header-arrows/right-arrow.png" />
+          <img src="assets/images/header-arrows/right-arrow.png" />
         </button>
         <a href="system/pages/store/index.html" target="_blank">STORE</a>
         <a href="#" title="Coming soon">NEWS</a>
 
         <button class="mute-btn">
-          <img src="assets/media/images/audio-toggle-btn/mute.png" id="muteToggleImg" />
+          <img src="assets/images/audio-toggle-btn/mute.png" id="muteToggleImg" />
         </button>
 
         <button class="Qtype">
-          <img src="assets/media/images/qtypes-btn/Qleft.png" id="QtypeToggle" />
+          <img src="assets/images/qtypes-btn/Qleft.png" id="QtypeToggle" />
         </button>
 
         <button id="nes-btn">
-          <img src="assets/media/images/panic-btn/deny.png" alt="Toggle">
+          <img src="assets/images/panic-btn/deny.png" alt="Toggle">
         </button>
 
 <button id="cloak-btn">
-  <img src="assets/media/images/cloak-btn/cloaked.png" alt="CloakToggle">
+  <img src="assets/images/cloak-btn/cloaked.png" alt="CloakToggle">
 </button>
 
 <button id="fav-btn" title="Show favorites" aria-pressed="false">
-  <img src="assets/media/images/fav-btn/unfav.gif" alt="Favorites toggle">
+  <img src="assets/images/fav-btn/unfav.gif" alt="Favorites toggle">
 </button>
 
         <button type="button" id="openDailyPicks" class="hdr-icon-btn" title="Daily picks" aria-label="Daily picks">
-          <img src="assets/media/images/icons/daily.png" alt="" />
+          <img src="assets/images/icons/daily.png" alt="" />
         </button>
 
         <button type="button" id="openShortCuts" class="hdr-icon-btn" title="Shortcuts" aria-label="Keyboard shortcuts">
-          <img src="assets/media/images/icons/shortcuts.png" alt="" />
+          <img src="assets/images/icons/shortcuts.png" alt="" />
         </button>
 
       </div>
@@ -217,6 +218,7 @@
     </span>
     <code id="dashTicketId" role="button" tabindex="0">no ticket</code>
   </div>
+  <a href="#" id="openUpdates" title="See what's new">Updates &amp; changes</a>
   <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
   <a href="system/pages/credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
   <a href="#" id="openRefer" title="Share WannaSmile with a friend">Refer a friend</a>
@@ -263,17 +265,10 @@
   <aside id="pfpLibrary" class="pf-library pf-library-left" role="dialog" aria-labelledby="pfpLibraryTitle" hidden>
     <div class="pf-library-head">
       <h3 id="pfpLibraryTitle">Profile pictures</h3>
-      <div class="pf-tabs" role="tablist" aria-label="Picture or frame">
-        <button type="button" role="tab" class="pf-tab" data-pf-tab="pictures" aria-selected="true">Pictures</button>
-        <button type="button" role="tab" class="pf-tab" data-pf-tab="frames" aria-selected="false">Frames</button>
-        <button type="button" role="tab" class="pf-tab" data-pf-tab="wrappers" aria-selected="false">Wrapper</button>
-      </div>
       <button type="button" class="pf-icon-btn pf-library-close" data-close-library="pfp" aria-label="Close profile pictures"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
     </div>
     <p class="pf-adv-hint"><i class="fa-solid fa-crop-simple" aria-hidden="true"></i> Advanced editing: pick a picture to crop it.</p>
     <div id="pfpGrid" class="pf-library-grid pfp-grid"></div>
-    <div id="frameGrid" class="pf-library-grid pfp-grid frame-grid" hidden></div>
-    <div id="wrapperGrid" class="pf-library-grid wrapper-grid" hidden></div>
     <div id="cropContainer" class="pf-crop" style="display:none;">
       <img id="cropPreview" alt="Crop your picture">
       <div class="crop-actions">
@@ -283,10 +278,20 @@
     </div>
     <div class="pf-library-foot">
       <button type="button" id="removePicBtn" class="overlay-btn remove-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove picture</button>
-      <button type="button" id="removeFrameBtn" class="overlay-btn remove-btn" hidden><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove frame</button>
-      <button type="button" id="removeWrapperBtn" class="overlay-btn remove-btn" hidden><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove wrapper</button>
     </div>
     <input type="file" id="profilePicInput" accept="image/*" hidden>
+  </aside>
+
+  <!-- Left, stacked on top of the pictures library: picture frames (its own side modal) -->
+  <aside id="framesLibrary" class="pf-library pf-library-frames" role="dialog" aria-labelledby="framesLibraryTitle" hidden>
+    <div class="pf-library-head">
+      <h3 id="framesLibraryTitle">Picture frames</h3>
+      <button type="button" class="pf-icon-btn pf-library-close" data-close-library="frames" aria-label="Close picture frames"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div id="frameGrid" class="pf-library-grid pfp-grid frame-grid"></div>
+    <div class="pf-library-foot">
+      <button type="button" id="removeFrameBtn" class="overlay-btn remove-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove frame</button>
+    </div>
     <input type="file" id="profileFrameInput" accept="image/png,image/webp,image/gif,image/apng" hidden>
   </aside>
 
@@ -347,8 +352,18 @@
       </div>
     </div>
 
-    <div class="pf-save-row">
+    <div class="pf-below">
+      <section id="wrapperLibrary" class="pf-wrapper-dock" role="dialog" aria-labelledby="wrapperLibraryTitle" hidden>
+        <div class="pf-library-head">
+          <h3 id="wrapperLibraryTitle">Card wrapper</h3>
+          <button type="button" id="removeWrapperBtn" class="overlay-btn remove-btn"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Remove wrapper</button>
+          <button type="button" class="pf-icon-btn pf-library-close" data-close-library="wrappers" aria-label="Close card wrappers"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <div id="wrapperGrid" class="pf-library-grid wrapper-grid"></div>
+      </section>
+      <div class="pf-save-row">
       <button type="button" id="profileSaveBtn" class="overlay-btn save-btn" hidden><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save changes</button>
+      </div>
     </div>
   </div>
 
@@ -374,6 +389,25 @@
   </aside>
 </div>
 
+<div id="updatesOverlay" class="upd-overlay" role="dialog" aria-modal="true" aria-labelledby="updatesTitle" hidden>
+  <div class="upd-backdrop" id="updatesBackdrop"></div>
+  <div id="updatesPanel" tabindex="-1">
+    <img class="upd-banner" src="assets/images/pages/release/wannasmile-updated-banner.png" alt="" />
+    <h2 class="upd-title" id="updatesTitle">Updates n changes!</h2>
+    <img class="upd-sticker" src="https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/stickers/MeltGui-pack/cheer.webp" alt="" />
+    <ul class="upd-list">
+      <li>20 pages!</li>
+      <li>Faster loading time</li>
+      <li>Renewed auto approve until 150 users!</li>
+      <li>Wrapper &amp; frames coming next week!</li>
+    </ul>
+    <div class="upd-actions">
+      <button type="button" id="updatesDismiss" class="upd-btn upd-btn-ghost">Don't show again</button>
+      <button type="button" id="updatesReadMore" class="upd-btn upd-btn-primary">Tell me all about it!</button>
+    </div>
+  </div>
+</div>
+
 <script src="system/js/utils.js"></script>
 <script src="system/js/datacache.js"></script>
 <script src="system/js/paging.js"></script>
@@ -397,6 +431,7 @@
 <script src="system/js/rusure.js"></script>
 <script src="system/js/vendor/qrcode.js"></script>
 <script src="system/js/refer.js"></script>
+<script src="system/js/updates.js"></script>
 <script src="system/js/data.js"></script>
 <script src="system/js/gridSettings.js"></script>
 <script src="system/js/credits.js"></script>

@@ -4,7 +4,7 @@
 // Site-wide cursor packs, picked and switched on from the store page. Off by
 // default: nothing here touches the page until ws_cursors_enabled is "true".
 //
-// A pack is a folder of five pngs at assets/media/cursors/<id>/:
+// A pack is a folder of five pngs at assets/cursors/<id>/:
 //   normal  plain arrow              point  over links/buttons
 //   click   while the mouse is held  grab   draggable things
 //   deny    disabled / not-allowed
@@ -29,11 +29,11 @@
   const DEFAULT_PACK = "classic";
   const SIZE         = 32;
 
-  const BASE = new URL("../../assets/media/cursors/", document.currentScript?.src || location.href).href;
+  const BASE = new URL("../../assets/cursors/", document.currentScript?.src || location.href).href;
 
   // hot: where each cursor "points", in the source image's own pixels, or
   // "center" for the middle of the drawing. Add a pack: drop its folder in
-  // assets/media/cursors/ and list it here.
+  // assets/cursors/ and list it here.
   const PACKS = {
     classic: {
       name: "Classic",

@@ -2,7 +2,7 @@
   const muted = localStorage.getItem("ws_muted") === "true";
   document.addEventListener("DOMContentLoaded", function () {
     const img = document.getElementById("muteToggleImg");
-    if (img) img.src = muted ? "assets/media/gifs/audio-btn/SHUT.gif" : "assets/media/gifs/audio-btn/BOOM.gif";
+    if (img) img.src = muted ? "assets/gifs/audio-btn/SHUT.gif" : "assets/gifs/audio-btn/BOOM.gif";
     if (window.WS_Audio) window.WS_Audio.setMuted(muted);
   });
 })();
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const muted = localStorage.getItem("ws_muted") === "true";
     const next  = !muted;
     localStorage.setItem("ws_muted", next);
-    img.src = next ? "assets/media/gifs/audio-btn/SHUT.gif" : "assets/media/gifs/audio-btn/BOOM.gif";
+    img.src = next ? "assets/gifs/audio-btn/SHUT.gif" : "assets/gifs/audio-btn/BOOM.gif";
     if (window.WS_Audio) window.WS_Audio.setMuted(next);
   });
 });

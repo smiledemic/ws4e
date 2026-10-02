@@ -21,6 +21,7 @@
     // profile.js's real keys (the two above are older names)
     "nickname", "profilePic", "pfpPixelated", "profileBanner", "pfpAlign", "pfpFrame", "pfpWrapper", "pfpWrapperOpacity", "pfAdvancedEdit", "ws_profile_setup",
     "welcomeNeverShow",
+    "ws_updates_seen",   // last "Updates & changes" release dismissed/read (updates.js)
     "searchEngine",
     "_realTitle", "_realFavicon",
     "ws_selected_widgets", "ws_active_widget", "ws_widgets_hidden",
@@ -329,7 +330,7 @@
       if (favLink) favLink.href = favLink.dataset.realHref || "/favicon.ico";
 
       const cloakImg = document.querySelector("#cloak-btn img");
-      if (cloakImg) cloakImg.src = "assets/media/images/cloak-btn/visable.png";
+      if (cloakImg) cloakImg.src = "assets/images/cloak-btn/visable.png";
 
       document.documentElement.setAttribute("theme", "redux");
     } catch {}

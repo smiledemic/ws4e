@@ -373,9 +373,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const QTYPES      = ["Qleft", "Qright", "Qrefresh"];
   const QTYPE_ICONS = {
-    Qleft:    "assets/media/images/qtypes-btn/Qleft.png",
-    Qright:   "assets/media/images/qtypes-btn/Qright.png",
-    Qrefresh: "assets/media/images/qtypes-btn/Qrefresh.png",
+    Qleft:    "assets/images/qtypes-btn/Qleft.png",
+    Qright:   "assets/images/qtypes-btn/Qright.png",
+    Qrefresh: "assets/images/qtypes-btn/Qrefresh.png",
   };
   const QTYPE_KEY = "ws_qtype";
 

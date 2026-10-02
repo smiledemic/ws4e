@@ -24,6 +24,13 @@
 //   ws_widget_cache      the last widget list from the server, so the
 //                        bubble shows straight away on the next load
 //                        (refreshed from the server every load)
+//
+// WidgetBaseWS columns (row 1 = headers; matched case/space-insensitively):
+//   A id               B widget-name       C widget-url      D widget-icon
+//   E background-color F shadow-color      G x-color         H description
+// x-color is the colour of the X that replaces the bubble's icon while its
+// widget is open (blank = white). It sits BEFORE description, so the sheet's
+// G column is x-color and H is description.
 (() => {
   const SHEETS_URL    = `${window.WS_ENDPOINTS.cust}?type=widgets`; // endpoints.js
   const SELECTION_KEY = "ws_selected_widgets";
@@ -31,7 +38,31 @@
   const HIDDEN_KEY    = "ws_widgets_hidden";
   const CACHE_KEY     = "ws_widget_cache";
 
-  const ICON_CLOSE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><line x1='18' y1='6' x2='6' y2='18' stroke='white' stroke-width='2.5' stroke-linecap='round'/><line x1='6' y1='6' x2='18' y2='18' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>";
+  // Column order of the WidgetBaseWS sheet (see the header comment): x-color
+  // comes before description. Rows arrive keyed by header, so this is what
+  // each row is normalised against, whatever case / spacing the header has.
+  const COLUMNS = ["id", "widget-name", "widget-url", "widget-icon", "background-color", "shadow-color", "x-color", "description"];
+  const COLUMN_ALIASES = { "x-color": ["x-color", "x color", "xcolor", "x_colour", "x-colour"] };
+  const DEFAULT_X_COLOR = "#ffffff";
+
+  function normalizeWidget(row) {
+    if (!row || typeof row !== "object") return row;
+    const out = { ...row };
+    for (const col of COLUMNS) {
+      const v = typeof getFieldCI === "function" ? getFieldCI(row, ...(COLUMN_ALIASES[col] || [col])).trim() : String(row[col] ?? "").trim();
+      if (v) out[col] = v;
+    }
+    return out;
+  }
+  const normalizeList = (list) => (Array.isArray(list) ? list.map(normalizeWidget) : list);
+
+  // The X shown on the bubble while its widget is open, drawn in the widget's
+  // x-color (any plain CSS colour; anything odd falls back to white).
+  function iconClose(color) {
+    const c = /^[#\w(),.%\s-]{1,40}$/.test(color || "") ? color.trim() : DEFAULT_X_COLOR;
+    const stroke = c.replace(/#/g, "%23");
+    return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><line x1='18' y1='6' x2='6' y2='18' stroke='${stroke}' stroke-width='2.5' stroke-linecap='round'/><line x1='6' y1='6' x2='18' y2='18' stroke='${stroke}' stroke-width='2.5' stroke-linecap='round'/></svg>`;
+  }
 
   const GAP        = 12;   // bubble ↔ panel
   const DRAG_SLOP  = 5;    // px a press has to move before it's a drag
@@ -85,7 +116,7 @@
     const name = cfg["widget-name"] || cfg.id;
     bubble.setAttribute("aria-label", state === "open" ? `Minimize ${name}` : `Open ${name}`);
     bubble.setAttribute("aria-expanded", String(state === "open"));
-    icon.src = state === "open" ? ICON_CLOSE : (cfg["widget-icon"] || "");
+    icon.src = state === "open" ? iconClose(cfg["x-color"]) : (cfg["widget-icon"] || "");
   }
 
   // ── Iframes ──────────────────────────────────────────────────────────
@@ -435,7 +466,7 @@
     // Last known list first, so the bubble is there straight away.
     const cached = readJSON(CACHE_KEY, null);
     if (Array.isArray(cached)) {
-      window._availableWidgets = cached;
+      window._availableWidgets = normalizeList(cached);
       applySelection();
     }
     try {
@@ -444,8 +475,8 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const widgets = await res.json();
       if (!Array.isArray(widgets)) throw new Error("Widget feed did not return an array.");
-      window._availableWidgets = widgets;
-      write(CACHE_KEY, JSON.stringify(widgets));
+      window._availableWidgets = normalizeList(widgets);
+      write(CACHE_KEY, JSON.stringify(window._availableWidgets));
     } catch (err) {
       console.error("[Widgets] Failed to load widget list:", err);
       if (!Array.isArray(window._availableWidgets)) window._availableWidgets = [];

@@ -4,7 +4,9 @@
    buttons, theme variables.
 
    Three pieces on one overlay:
-     left    #pfpLibrary     profile pictures (Upload pinned first)
+     left    #pfpLibrary     profile pictures (Upload pinned first), with
+             #framesLibrary (picture frames) laid on top of it
+             #wrapperLibrary the card-wrapper picker, docked under the card
      centre  .pf-center      the card (banner, avatar, name) + Save below
      right   #bannerLibrary  banners (Upload pinned first)
    The card only shows what's on display; everything else is behind the
@@ -358,14 +360,22 @@
 .profile-overlay-handle:empty { display: none; }
 
 /* ── Save: below the card, only while something changed ── */
-/* Absolutely placed under the card, so showing/hiding it never shifts
-   the (centred) card. */
-.pf-save-row {
+/* .pf-below is absolutely placed under the card (wrapper dock, then Save),
+   so opening the dock or showing/hiding Save never shifts the (centred) card. */
+.pf-below {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   margin-top: clamp(14px, 2.2vh, 24px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(10px, 1.6vh, 18px);
+  pointer-events: none;
+}
+.pf-below > * { pointer-events: auto; }
+.pf-save-row {
   display: flex;
   justify-content: center;
   pointer-events: none;
@@ -400,6 +410,18 @@
   box-shadow: -8px 8px 0 var(--accent-color, #f44);
   animation: pf-slide-left 0.4s cubic-bezier(.3, 1.4, .5, 1);
 }
+/* Frames: its own side modal, laid on top of the pictures library at the top of
+   the left column. It is fixed, so it never pushes the pictures library down. */
+.pf-library-frames {
+  left: clamp(26px, 3.4vw, 64px);
+  top: clamp(14px, 4vh, 44px);
+  z-index: 3;
+  max-height: min(50vh, 460px);
+  transform: rotate(-0.8deg);
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+  animation: pf-slide-frames 0.4s cubic-bezier(.3, 1.4, .5, 1);
+}
+@keyframes pf-slide-frames { from { opacity: 0; transform: translate(-40px, 0) rotate(-4deg); } }
 .pf-library-right {
   right: clamp(12px, 2vw, 36px);
   transform: translateY(-50%) rotate(-0.6deg);
@@ -605,29 +627,16 @@
 @media (max-width: 720px) {
   .pf-center { width: 100%; }
   .pf-library { width: calc(100vw - 28px); left: 14px; right: 14px; }
+  .pf-library-frames { top: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #profileOverlay.visible,
   #profileOverlay.visible #profileOverlayPanel,
-  .pf-library, .pf-tile, .pf-gear-menu, #profileSaveBtn { animation: none; }
+  .pf-library, .pf-wrapper-dock, .pf-tile, .pf-gear-menu, #profileSaveBtn { animation: none; }
   .overlay-btn, .pf-icon-btn, .pf-tile, .pf-edit-badge, .pf-avatar-pencil { transition: none; }
 }
 
-/* ── Library tabs (Pictures / Frames) ── */
-.pf-tabs { display: flex; gap: 4px; margin-left: auto; margin-right: 8px; }
-.pf-tab {
-  padding: 3px 10px;
-  border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: transparent;
-  color: var(--url-color, #fff);
-  font: inherit;
-  font-size: 0.8em;
-  cursor: pointer;
-}
-.pf-tab[aria-selected="true"] { background: var(--accent-color, #f44); border-color: var(--accent-color, #f44); color: #fff; }
-.pf-tab:focus-visible { outline: 2px solid var(--url-color, #fff); outline-offset: 2px; }
 .frame-grid { grid-template-columns: repeat(auto-fill, minmax(clamp(64px, 8.5vh, 104px), 1fr)); }
 .frame-grid .pf-tile img { border-radius: 6px; object-fit: contain; padding: 4px; }
 .frame-grid .pf-tile.is-none .pf-tile-upload { aspect-ratio: 1; border-radius: 50%; background: rgba(0, 0, 0, 0.35); }
@@ -635,24 +644,49 @@
 .frame-grid .pf-tile.is-missing img { opacity: 0.15; }
 
 /* ── Card wrapper: the card's background image, behind everything on it.
-   Height fills the card, width overflows and is cut off (the panel and this
-   layer both clip). Opacity comes from the sheet / the visitor's slider. ── */
+   Always fills 100% of the card's width; whatever height that leaves over
+   is cut off (this layer clips, centred). Opacity comes from the visitor's
+   slider. ── */
 .pf-wrapper {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: var(--pf-wrapper-img) center / auto 100% no-repeat;
+  width: 100%;
+  background: var(--pf-wrapper-img) center / 100% auto no-repeat;
   opacity: var(--pf-wrapper-opacity, 1);
 }
 .pf-wrapper[hidden] { display: none; }
 #profileOverlayPanel .profile-banner { position: relative; z-index: 1; }
 
-.wrapper-grid { grid-template-columns: repeat(auto-fill, minmax(clamp(110px, 12vh, 150px), 1fr)); }
-.wrapper-grid .pf-tile img { aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px; }
-.wrapper-grid .pf-tile.is-none .pf-tile-upload { aspect-ratio: 3 / 4; border-radius: 8px; background: rgba(0, 0, 0, 0.35); }
+/* Wrapper picker: a docked strip under the centred card (see .pf-below). */
+.wrapper-grid {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(110px, 13vh, 160px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+}
+.wrapper-grid .pf-tile img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; object-position: center; border-radius: 8px; }
+.wrapper-grid .pf-tile.is-none .pf-tile-upload { aspect-ratio: 16 / 10; border-radius: 8px; background: rgba(0, 0, 0, 0.35); }
 .wrapper-grid .pf-tile.is-missing img { opacity: 0.15; }
+.pf-wrapper-dock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(10px, 1.5vh, 16px);
+  border-radius: 18px 14px 20px 16px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.92));
+  box-shadow: 6px 6px 0 var(--accent-color, #f44);
+  animation: pf-pop 0.35s cubic-bezier(.3, 1.6, .5, 1);
+}
+.pf-wrapper-dock[hidden] { display: none; }
+.pf-wrapper-dock .pf-library-head { margin-bottom: clamp(6px, 1vh, 10px); }
+.pf-wrapper-dock .pf-library-head h3 { flex: 1 1 auto; }
+.pf-wrapper-dock .remove-btn { flex: none; padding: 5px 12px; font-size: 0.8em; }
 /* Wrapper opacity: a slider row inside the gear menu. */
 .pf-opacity { display: flex; align-items: center; gap: 8px; margin: 0 6px; font-size: 0.85em; }
 .pf-opacity input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent-color, #f44); cursor: pointer; }
@@ -664,7 +698,6 @@
 /* Library head: title + close on the first row, tabs on their own row so
    three tabs never squeeze the close button. */
 .pf-library-head { flex-wrap: wrap; }
-.pf-library-head .pf-tabs { order: 3; flex: 1 0 100%; margin: 0; }
 .pf-library-head .pf-library-close { flex: none; margin-left: auto; }
 .pf-library-head h3 { flex: 1 1 auto; min-width: 0; }
 

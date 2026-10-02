@@ -419,7 +419,7 @@ function renderPfpGrid() {
   markPicked("#pfpGrid", currentValue("pic"));
 }
 
-// Frames tab of the picture library: Upload, "None", their own upload, then
+// Frames side modal: Upload, "None", their own upload, then
 // every FramesWS frame. Each tile previews the frame over a sample circle.
 function frameTile(f, index) {
   const tile = makeTile({
@@ -468,7 +468,7 @@ function loadFrameGrid() {
     .catch(() => { if (!window.WSFrames.cached().length) renderFrameGrid([], "Couldn't load frames right now. Try again in a bit."); });
 }
 
-// Card wrapper tab: "None" + every WrapperWS wrapper, shown as thumbnails.
+// Card wrapper dock (under the card): "None" + every WrapperWS wrapper, shown as thumbnails.
 function wrapperTile(w, index) {
   const tile = makeTile({
     value: w.url, img: w.url, label: w.name, index,
@@ -517,33 +517,6 @@ function paintWrapperControls() {
   const pct = window.WSWrappers.opacityPct(currentValue("wrapperOpacity"));
   if (String(slider.value) !== String(pct)) slider.value = String(pct);
   if (out) out.textContent = `${pct}%`;
-}
-
-// Pictures / Frames / Wrapper tabs inside the left library.
-const PFP_TABS = {
-  pictures: { title: "Profile pictures", grid: "pfpGrid",     remove: "removePicBtn" },
-  frames:   { title: "Picture frames",   grid: "frameGrid",   remove: "removeFrameBtn" },
-  wrappers: { title: "Card wrapper",     grid: "wrapperGrid", remove: "removeWrapperBtn" },
-};
-
-function setPfpTab(tab) {
-  if (!PFP_TABS[tab]) tab = "pictures";
-  const lib = libraryEl("pfp");
-  if (!lib) return;
-  lib.dataset.tab = tab;
-  lib.querySelectorAll("[data-pf-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.pfTab === tab)));
-  const title = document.getElementById("pfpLibraryTitle");
-  if (title) title.textContent = PFP_TABS[tab].title;
-  const cropOpen = document.getElementById("cropContainer")?.style.display === "block";
-  Object.entries(PFP_TABS).forEach(([name, t]) => {
-    const grid = document.getElementById(t.grid);
-    if (grid) grid.hidden = name !== tab || (name === "pictures" && cropOpen);
-    const rm = document.getElementById(t.remove);
-    if (rm) rm.hidden = name !== tab;
-  });
-  if (tab === "frames") loadFrameGrid();
-  else if (tab === "wrappers") loadWrapperGrid();
-  else renderPfpGrid();
 }
 
 // BannerWS columns: name | identification | type | src | thumb | animated | pixelated
@@ -616,8 +589,12 @@ function renderBannerGrid(list, message) {
   markPicked("#bannerGrid", currentValue("banner"));
 }
 
-function libraryEl(which) {
-  return document.getElementById(which === "banner" ? "bannerLibrary" : "pfpLibrary");   // "frames" shares the picture library
+// Side modals / docks: pfp + frames (left, frames laid on top), banner (right),
+// wrappers (docked under the centred card).
+const LIBRARY_IDS = { pfp: "pfpLibrary", frames: "framesLibrary", banner: "bannerLibrary", wrappers: "wrapperLibrary" };
+function libraryEl(which) { return document.getElementById(LIBRARY_IDS[which] || LIBRARY_IDS.pfp); }
+function closeAllLibraries() {
+  return Object.keys(LIBRARY_IDS).map(closeLibrary).some(Boolean);   // map first: every one closes
 }
 
 function openLibrary(which) {
@@ -629,8 +606,12 @@ function openLibrary(which) {
     renderBannerGrid(cached, cached.length ? "" : "Loading banners…");
     loadBanners().then(list => renderBannerGrid(list))
       .catch(() => { if (!cachedBanners().length) renderBannerGrid([], "Couldn't load banners right now. Try again in a bit."); });
+  } else if (which === "frames") {
+    loadFrameGrid();
+  } else if (which === "wrappers") {
+    loadWrapperGrid();
   } else {
-    setPfpTab(which === "frames" || which === "wrappers" ? which : (libraryEl("pfp").dataset.tab || "pictures"));
+    renderPfpGrid();
   }
   lib.querySelector(".pf-tile")?.focus({ preventScroll: true });
 }
@@ -725,8 +706,7 @@ function closeProfileOverlay() {
   if (nameEditing()) endNameEdit(false);
   const dropped = profileDirty();
   setGearMenu(false);
-  closeLibrary("pfp");
-  closeLibrary("banner");
+  closeAllLibraries();
   document.getElementById("cropCancel")?.click();
   document.getElementById("bannerCropCancel")?.click();
   resetPending();
@@ -772,7 +752,7 @@ window.addEventListener("DOMContentLoaded", () => {
       e.preventDefault(); e.stopImmediatePropagation();
       if (nameEditing()) { endNameEdit(false); $id("editNameBtn")?.focus(); return; }
       if (setGearMenu(false)) { $id("profileGearBtn")?.focus(); return; }
-      if (closeLibrary("pfp") | closeLibrary("banner")) { $id("profileOverlayPanel")?.focus({ preventScroll: true }); return; }
+      if (closeAllLibraries()) { $id("profileOverlayPanel")?.focus({ preventScroll: true }); return; }
       closeProfileOverlay();
       return;
     }
@@ -825,7 +805,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // "Edit your profile" opens both libraries (or closes both if they're open).
   $id("profileOverlayTitle")?.addEventListener("click", (e) => {
     const bothOpen = !libraryEl("pfp").hidden && !libraryEl("banner").hidden;
-    if (bothOpen) { closeLibrary("pfp"); closeLibrary("banner"); }
+    if (bothOpen) { closeAllLibraries(); }
     else { openLibrary("banner"); openLibrary("pfp"); }
     e.currentTarget.setAttribute("aria-expanded", String(!bothOpen));
   });
@@ -834,7 +814,6 @@ window.addEventListener("DOMContentLoaded", () => {
   $id("removeFrameBtn")?.addEventListener("click", () => setPending("frame", ""));
   $id("removeWrapperBtn")?.addEventListener("click", () => setPending("wrapper", ""));
   $id("wrapperOpacity")?.addEventListener("input", (e) => setPending("wrapperOpacity", String(e.target.value)));
-  overlay.querySelectorAll("[data-pf-tab]").forEach(b => b.addEventListener("click", () => setPfpTab(b.dataset.pfTab)));
 
   // Frame upload: kept as-is (no crop) so transparency and GIFs survive.
   $id("profileFrameInput")?.addEventListener("change", (e) => {

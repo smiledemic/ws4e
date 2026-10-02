@@ -153,12 +153,12 @@
     };
   }
 
-  // Card backs: hand-drawn doodles in assets/media/images/card-backs/1.png
+  // Card backs: hand-drawn doodles in assets/images/card-backs/1.png
   // … CARD_BACK_COUNT.png, dealt at random with no repeats within one hand.
   // Only their shape (alpha) is used; the colour comes from the theme.
   // Paths resolve from this script, so any page that loads it works.
   const CARD_BACK_COUNT = 36;
-  const CARD_BACK_BASE  = new URL("../../assets/media/images/card-backs/", document.currentScript?.src || location.href);
+  const CARD_BACK_BASE  = new URL("../../assets/images/card-backs/", document.currentScript?.src || location.href);
 
   function dealCardBacks(n) {
     const pool = Array.from({ length: CARD_BACK_COUNT }, (_, k) => k + 1);

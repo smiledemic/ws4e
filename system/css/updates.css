@@ -1,0 +1,135 @@
+/* ── "Updates & changes" modal (see system/js/updates.js) ────────────────
+   Same family as the profile / refer-a-friend pop-ups: blurred polka-dot
+   backdrop, a tilted panel with an offset accent shadow, a sticker title
+   overlapping the banner, pill buttons, theme variables. */
+
+.upd-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 14px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+}
+.upd-overlay.visible { display: flex; animation: upd-fade 0.25s ease; }
+@keyframes upd-fade { from { opacity: 0; } }
+@keyframes upd-pop  { from { transform: scale(0.7) rotate(-5deg); opacity: 0; } }
+
+.upd-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(9px) saturate(1.3);
+  -webkit-backdrop-filter: blur(9px) saturate(1.3);
+}
+
+#updatesPanel {
+  position: relative;
+  z-index: 1;
+  width: min(94vw, 616px);
+  max-height: min(94dvh, 900px);
+  overflow-y: auto;
+  border-radius: 22px 18px 24px 16px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0, 0, 0, 0.92));
+  box-shadow: 8px 8px 0 var(--accent-color, #f44);
+  transform: rotate(-0.4deg);
+  outline: none;
+}
+.upd-overlay.visible #updatesPanel { animation: upd-pop 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+
+.upd-banner {
+  display: block;
+  width: 100%;
+  height: clamp(126px, 28vh, 280px);
+  object-fit: cover;
+  border-bottom: 3px solid var(--accent-color, #f44);
+  border-radius: 19px 15px 0 0;
+}
+
+/* "Updates n changes!": a tilted sticker, overlapping the banner's bottom-left corner. */
+.upd-title {
+  position: relative;
+  z-index: 2;
+  margin: -30px 0 0 20px;
+  display: inline-block;
+  padding: 4px 18px 7px;
+  border-radius: 10px 14px 9px 13px;
+  background: rgba(0, 0, 0, 0.65);
+  font-size: clamp(25px, 3.9vh, 39px);
+  line-height: 1.15;
+  transform: rotate(-3deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* Purely decorative, top-left — one of the site's own sticker pack. */
+.upd-sticker {
+  position: absolute;
+  top: clamp(8px, 1.6vh, 18px);
+  left: clamp(8px, 1.6vh, 18px);
+  z-index: 3;
+  width: clamp(67px, 12.6vh, 106px);
+  height: auto;
+  transform: rotate(-10deg);
+  filter: drop-shadow(2px 3px 0 rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+  user-select: none;
+}
+
+.upd-list {
+  list-style: none;
+  margin: 18px 22px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: clamp(14px, 1.8vh, 17px);
+  line-height: 1.4;
+}
+.upd-list li { position: relative; padding-left: 22px; }
+.upd-list li::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: var(--accent-color, #f44);
+}
+
+.upd-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 22px;
+}
+.upd-btn {
+  flex: 1 1 auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font: bold 0.85rem monospace;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.15s;
+}
+.upd-btn-ghost {
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--url-color, #fff);
+}
+.upd-btn-ghost:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); }
+.upd-btn-primary {
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--accent-color, #f44);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45);
+}
+.upd-btn-primary:hover { transform: translateY(-2px) rotate(-1deg); }
+.upd-btn-primary:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0, 0, 0, 0.45); }
+.upd-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+
+@media (prefers-reduced-motion: reduce) {
+  .upd-overlay.visible, .upd-overlay.visible #updatesPanel, .upd-btn-primary:hover { animation: none; transform: none; }
+}

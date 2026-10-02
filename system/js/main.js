@@ -897,7 +897,7 @@ window.addEventListener("load", () => {
     // Fixes bare-domain links (no "https://") from sheet data entry before
     // they're used anywhere — see normalizeExternalLink in utils.js.
     const rawLink = normalizeExternalLink(row.link);
-    const rawImg  = safeStr(row.image);
+    const rawImg  = safeStr(row.image).trim();
     const cat     = _firstFilled(row, cols.category);
     const sub     = _firstFilled(row, cols.subcategory);
 
@@ -908,7 +908,7 @@ window.addEventListener("load", () => {
       link:        rawLink || config.fallbackLink,
       linkTrim:    rawLink.trim(),
       image:       rawImg || config.fallbackImage,
-      imageTrim:   rawImg.trim(),
+      imageTrim:   rawImg,
       page:        Number(row.page) || 1,
       statusSet, typeSet, hidden, earlyAccess, merged,
       categoryRaw: cat,
@@ -951,6 +951,31 @@ window.addEventListener("load", () => {
     return rows;
   }
 
+  // A sheet row flagged with this type (stacked in the "type" column
+  // alongside/instead of others — see _parseStack) opens its own "link"
+  // cell — same as any other asset, the sheet stays the source of truth —
+  // but through openInBlankTab below instead of navigating the new tab
+  // straight to that URL. "qwerty" is just a placeholder while this is
+  // being tested from the sheet.
+  const REALMZ_TYPE_TOKEN = "qwerty";
+
+  // window.open() a blank tab, then append an <iframe src="url"> to it, so
+  // the opened tab's own address bar stays on about:blank.
+  function openInBlankTab(url) {
+    const tab = window.open();
+    if (!tab) return false;
+    tab.document.body.style.margin   = "0";
+    tab.document.body.style.padding  = "0";
+    tab.document.body.style.overflow = "hidden";
+    const iframe = tab.document.createElement("iframe");
+    iframe.style.width  = "100vw";
+    iframe.style.height = "100vh";
+    iframe.style.border = "none";
+    iframe.src = url;
+    tab.document.body.appendChild(iframe);
+    return true;
+  }
+
   // Shared "open this asset" behaviour — used by grid cards and the daily
   // picks, so both honour the incognito modes and the html/txt loader.
   async function openAsset(link) {
@@ -960,6 +985,11 @@ window.addEventListener("load", () => {
     const resolvedLink  = matched ? matched.linkTrim : link;
     const renderTitle   = matched ? matched.title || "Embed" : "Embed";
     const renderFav     = matched ? matched.imageTrim : "";
+
+    if (matched?.typeSet?.has(REALMZ_TYPE_TOKEN)) {
+      openInBlankTab(resolvedLink);
+      return;
+    }
 
     if (
       /^https:\/\/cdn\.jsdelivr\.net\/.+\.html$/i.test(resolvedLink) ||
@@ -1724,13 +1754,27 @@ window.addEventListener("load", () => {
         // guaranteed 404 for every missing image (~540 dead requests per
         // load, competing with the real images), so it's local-only.
         const localFallback = _isLocalSite() ? localIconFallback(link) : "";
-        const onLoad        = () => resolve();
+        let   watchdog;
+        const clearWatchdog = () => clearTimeout(watchdog);
+        const onLoad        = () => { clearWatchdog(); resolve(); };
         const markFallback  = () => img.classList.add("img-fallback");
+
+        // Re-armed before every tier's img.src is set: a host that neither
+        // loads nor errors within IMG_WAIT_MS is treated the same as a load
+        // error (falls through to the next tier) instead of just resolving
+        // the card "ready" with nothing actually rendered — a card only
+        // counts as ready once some image has genuinely finished loading,
+        // same as one with a real hosted image.
+        const arm = (onStall) => { clearWatchdog(); watchdog = setTimeout(onStall, IMG_WAIT_MS); };
 
         const tryFinal = () => {
           markFallback();
           img.onload  = onLoad;
-          img.onerror = resolve;
+          // Nothing left to fall back to: a stall here still has to give up
+          // eventually so it doesn't hold the whole page's loader hostage,
+          // but only after this image itself got its full IMG_WAIT_MS try.
+          img.onerror = onLoad;
+          arm(onLoad);
           img.src = config.fallbackImage;
         };
 
@@ -1739,6 +1783,7 @@ window.addEventListener("load", () => {
           if (localFallback) {
             img.onload  = onLoad;
             img.onerror = tryFinal;
+            arm(tryFinal);
             img.src = localFallback;
           } else {
             tryFinal();
@@ -1753,6 +1798,7 @@ window.addEventListener("load", () => {
               if (!url) { tryLocal(); return; }
               img.onload  = onLoad;
               img.onerror = next;
+              arm(next);
               img.src = url;
             };
             next();
@@ -1764,14 +1810,9 @@ window.addEventListener("load", () => {
         } else {
           img.onload  = onLoad;
           img.onerror = tryStaged;
+          arm(tryStaged);
           img.src = imageSrc;
         }
-
-        // A host that stalls (neither loads nor errors) would hold up the
-        // whole page's loader, and the tour waiting on it, for minutes. The
-        // card counts as ready after IMG_WAIT_MS; the image still arrives
-        // whenever it does.
-        setTimeout(resolve, IMG_WAIT_MS);
       });
       if (primary) imagePromises.push({ promise: imgPromise, page: pageNum, card });
       wrapper.appendChild(img);
@@ -1782,7 +1823,7 @@ window.addEventListener("load", () => {
 
       if (typeSet.has("grail")) {
         const grailEl = document.createElement("img");
-        grailEl.src = "assets/media/images/type-overlayStyles/grail.png";
+        grailEl.src = "assets/images/type-overlayStyles/grail.png";
         grailEl.alt = "";
         grailEl.className = "grail-bg";
         wrapper.insertBefore(grailEl, wrapper.firstChild);
@@ -1817,7 +1858,7 @@ window.addEventListener("load", () => {
         const isDmca    = typeSet.has("dmca") || statusSet.has("dmca");
         const isBlocked = typeSet.has("blocked") || statusSet.has("blocked");
         if (isDmca || isBlocked) {
-          img.src = "assets/media/images/placeholders/cooked.png";
+          img.src = "assets/images/placeholders/cooked.png";
           img.style.imageRendering = "pixelated";
         }
         card.classList.add("cooked");
