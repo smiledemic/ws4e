@@ -4,7 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link id="favicon" rel="icon" href="assets/favicons/favicon.png"/>
-<title>WannaSmile4Evr | Home</title>
+<title>WannaSmile4Evr</title>
+
 <!-- Asset data comes from Apps Script, which redirects to
      script.googleusercontent.com — open both connections right away. -->
 <link rel="preconnect" href="https://script.google.com" crossorigin />
@@ -14,6 +15,7 @@
      starts fetching its list straight away. See wordfilter.js. -->
 <script src="system/js/endpoints.js"></script>
 <script src="system/js/wordfilter.js"></script>
+
 <script>
 // Start the asset fetch now, from the <head>, instead of waiting for every
 // stylesheet, CDN script and main.js to download and DOMContentLoaded to
@@ -104,12 +106,18 @@
 (function () {
   var FALLBACK = ["https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loading.gif", "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loaded.gif"];
 
-  var urls = null;
+  var urls = null, mineActive = false;
   try {
     var activeId = (localStorage.getItem("ws_active_gifpack") || "redux").trim().toLowerCase();
     var cache    = JSON.parse(localStorage.getItem("ws_gifpack_cache") || "{}");
     var pack     = cache && typeof cache === "object" ? cache[activeId] : null;
     var states   = pack && pack.states ? pack.states : null;
+    // One of the user's own gif packs (data: gifs, ws_custom_gifpacks) needs
+    // no download at all, so don't preload redux's while it's active.
+    if (!states && activeId.indexOf("my-") === 0) {
+      var mine = JSON.parse(localStorage.getItem("ws_custom_gifpacks") || "{}");
+      if (mine && mine[activeId]) { urls = []; mineActive = true; }
+    }
     if (states) {
       urls = ["loading", "loaded"]
         .map(function (key) { return states[key] && states[key].src; })
@@ -117,7 +125,7 @@
     }
   } catch (_) { urls = null; }
 
-  (urls && urls.length ? urls : FALLBACK).forEach(function (href) {
+  (urls && (urls.length || mineActive) ? urls : FALLBACK).forEach(function (href) {
     var link = document.createElement("link");
     link.rel  = "preload";
     link.as   = "image";
@@ -152,7 +160,7 @@
           <img src="assets/images/header-arrows/right-arrow.png" />
         </button>
         <a href="system/pages/store/index.html" target="_blank">STORE</a>
-        <a href="#" title="Coming soon">NEWS</a>
+        <a href="system/pages/news/index.html" target="_blank">NEWS</a>
 
         <button class="mute-btn">
           <img src="assets/images/audio-toggle-btn/mute.png" id="muteToggleImg" />
@@ -217,9 +225,9 @@
     <code id="dashTicketId" role="button" tabindex="0">no ticket</code>
   </div>
   <a href="#" id="openUpdates" title="See what's new">Updates &amp; changes</a>
-  <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
-  <a href="system/pages/credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
+    <a href="system/pages/credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
   <a href="#" id="openRefer" title="Share WannaSmile with a friend">Refer a friend</a>
+    <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
   <a href="#" id="clearData">Clear My Data</a>
 </aside>
 
@@ -405,7 +413,7 @@
     </div>
   </div>
 </div>
-<!--Alot of scripts lmao-->
+
 <script src="system/js/utils.js"></script>
 <script src="system/js/datacache.js"></script>
 <script src="system/js/paging.js"></script>

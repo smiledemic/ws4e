@@ -20,14 +20,17 @@
 // Storage:
 //   ws_cursors_enabled  "true" when on (set by store.html)
 //   ws_active_cursor    the active pack id
-//   ws_cursor_cache     { id, v, states } baked images for instant paint
+//   ws_cursor_size      cursor size in px (16-128, default 32), set on the Settings page
+//   ws_cursor_cache     { id, v, size, states } baked images for instant paint
 (() => {
   const ENABLED_KEY  = "ws_cursors_enabled";
   const ACTIVE_KEY   = "ws_active_cursor";
   const CACHE_KEY    = "ws_cursor_cache";
-  const CACHE_VER    = 1;   // bump when baking changes, so old caches rebuild
+  const SIZE_KEY     = "ws_cursor_size";
+  const CACHE_VER    = 2;   // bump when baking changes, so old caches rebuild
   const DEFAULT_PACK = "classic";
-  const SIZE         = 32;
+  // Browsers ignore cursor images over 128px, so that's the ceiling.
+  const SIZE_MIN = 16, SIZE_MAX = 128, SIZE_DEFAULT = 32;
 
   const BASE = new URL("../../assets/cursors/", document.currentScript?.src || location.href).href;
 
@@ -67,6 +70,11 @@
     const id = (read(ACTIVE_KEY) || DEFAULT_PACK).trim().toLowerCase();
     return PACKS[id] ? id : DEFAULT_PACK;
   };
+  const clampSize = (n) => {
+    n = Math.round(Number(n));
+    return Number.isFinite(n) ? Math.max(SIZE_MIN, Math.min(SIZE_MAX, n)) : SIZE_DEFAULT;
+  };
+  const getSize = () => clampSize(read(SIZE_KEY) ?? SIZE_DEFAULT);
   const rawUrl = (id, state) => new URL(`${encodeURIComponent(id)}/${state}.png`, BASE).href;
 
   // ── Baking: trim, scale to SIZE, move the hotspot along ─────────────────
@@ -79,7 +87,7 @@
     });
   }
 
-  function bake(img, hot) {
+  function bake(img, hot, size) {
     const w = img.naturalWidth, h = img.naturalHeight;
     const c = Object.assign(document.createElement("canvas"), { width: w, height: h });
     const ctx = c.getContext("2d");
@@ -98,7 +106,7 @@
     if (x1 < 0) throw new Error("empty image");
 
     const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-    const k = Math.min(1, SIZE / Math.max(bw, bh));
+    const k = Math.min(1, size / Math.max(bw, bh));
     const ow = Math.max(1, Math.round(bw * k)), oh = Math.max(1, Math.round(bh * k));
     const out = Object.assign(document.createElement("canvas"), { width: ow, height: oh });
     const octx = out.getContext("2d");
@@ -110,24 +118,27 @@
     return { url: out.toDataURL("image/png"), x: clamp((hx - x0) * k, ow), y: clamp((hy - y0) * k, oh) };
   }
 
+  // Baked per pack AND size, so dragging the size slider back and forth
+  // doesn't redo work it has already done.
   const _baking = {};
-  function bakePack(id) {
-    if (_baking[id]) return _baking[id];
+  function bakePack(id, size = getSize()) {
+    const slot = `${id}@${size}`;
+    if (_baking[slot]) return _baking[slot];
     const pack = PACKS[id];
-    _baking[id] = Promise.all(STATES.map(async (state) => {
+    _baking[slot] = Promise.all(STATES.map(async (state) => {
       const img = await loadImg(rawUrl(id, state));
-      return [state, bake(img, pack.hot[state])];
+      return [state, bake(img, pack.hot[state], size)];
     })).then(Object.fromEntries).catch((err) => {
-      delete _baking[id];
+      delete _baking[slot];
       throw err;
     });
-    return _baking[id];
+    return _baking[slot];
   }
 
-  function cachedStates(id) {
+  function cachedStates(id, size = getSize()) {
     try {
       const c = JSON.parse(read(CACHE_KEY) || "null");
-      return c && c.id === id && c.v === CACHE_VER && c.states ? c.states : null;
+      return c && c.id === id && c.v === CACHE_VER && c.size === size && c.states ? c.states : null;
     } catch { return null; }
   }
 
@@ -246,13 +257,13 @@
   // Paint from cache right away, then bake (or re-bake) in the background.
   function refresh() {
     if (!isEnabled()) { _states = null; return unpaint(); }
-    const id = getActive();
-    _states = cachedStates(id);
+    const id = getActive(), size = getSize();
+    _states = cachedStates(id, size);
     paint();
     if (_states) return;
-    bakePack(id).then((states) => {
-      if (getActive() !== id) return;
-      write(CACHE_KEY, JSON.stringify({ id, v: CACHE_VER, states }));
+    bakePack(id, size).then((states) => {
+      if (getActive() !== id || getSize() !== size) return;   // changed while baking
+      write(CACHE_KEY, JSON.stringify({ id, v: CACHE_VER, size, states }));
       _states = states;
       paint();
     }).catch((err) => {
@@ -296,8 +307,12 @@
 
   // Another page or tab (the store) changed the cursor settings.
   window.addEventListener("storage", (e) => {
-    if (e.key === ENABLED_KEY || e.key === ACTIVE_KEY) refresh();
+    if (e.key === ENABLED_KEY || e.key === ACTIVE_KEY || e.key === SIZE_KEY) refresh();
   });
+
+  // Same-tab listeners (the Settings page) can't get a "storage" event for
+  // their own writes, so changes announce themselves too.
+  const announce = () => document.dispatchEvent(new CustomEvent("ws:cursor-change"));
 
   window.WSCursors = {
     list: () => Object.entries(PACKS).map(([id, p]) => ({ id, name: p.name })),
@@ -305,23 +320,37 @@
     isEnabled,
     getActive,
     getName: (id) => PACKS[id]?.name || id,
+    sizeMin: SIZE_MIN, sizeMax: SIZE_MAX, sizeDefault: SIZE_DEFAULT,
+    getSize,
+    // Cursor size in px, clamped to 16-128. The default (32) is stored as
+    // "nothing", so a reset leaves no trace.
+    setSize(px) {
+      const size = clampSize(px);
+      write(SIZE_KEY, size === SIZE_DEFAULT ? null : String(size));
+      refresh();
+      announce();
+      return size;
+    },
     setEnabled(on) {
       write(ENABLED_KEY, on ? "true" : null);
       refresh();
+      announce();
     },
     setActive(id) {
       const key = (id || "").trim().toLowerCase();
       if (!PACKS[key]) return false;
       write(ACTIVE_KEY, key);
       refresh();
+      announce();
       return true;
     },
     // Trimmed, cursor-sized images of a pack for previews; the raw files if
     // baking isn't possible (e.g. opened from file://).
-    preview(id) {
-      const cached = cachedStates(id);
+    preview(id, size = getSize()) {
+      size = clampSize(size);
+      const cached = cachedStates(id, size);
       if (cached) return Promise.resolve(Object.fromEntries(STATES.map((s) => [s, cached[s].url])));
-      return bakePack(id)
+      return bakePack(id, size)
         .then((states) => Object.fromEntries(STATES.map((s) => [s, states[s].url])))
         .catch(() => Object.fromEntries(STATES.map((s) => [s, rawUrl(id, s)])));
     },

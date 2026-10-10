@@ -65,12 +65,18 @@
 (function () {
   var FALLBACK = ["https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loading.gif", "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loaded.gif"];
 
-  var urls = null;
+  var urls = null, mineActive = false;
   try {
     var activeId = (localStorage.getItem("ws_active_gifpack") || "redux").trim().toLowerCase();
     var cache    = JSON.parse(localStorage.getItem("ws_gifpack_cache") || "{}");
     var pack     = cache && typeof cache === "object" ? cache[activeId] : null;
     var states   = pack && pack.states ? pack.states : null;
+    // One of the user's own gif packs (data: gifs, ws_custom_gifpacks) needs
+    // no download at all, so don't preload redux's while it's active.
+    if (!states && activeId.indexOf("my-") === 0) {
+      var mine = JSON.parse(localStorage.getItem("ws_custom_gifpacks") || "{}");
+      if (mine && mine[activeId]) { urls = []; mineActive = true; }
+    }
     if (states) {
       urls = ["loading", "loaded"]
         .map(function (key) { return states[key] && states[key].src; })
@@ -78,7 +84,7 @@
     }
   } catch (_) { urls = null; }
 
-  (urls && urls.length ? urls : FALLBACK).forEach(function (href) {
+  (urls && (urls.length || mineActive) ? urls : FALLBACK).forEach(function (href) {
     var link = document.createElement("link");
     link.rel  = "preload";
     link.as   = "image";

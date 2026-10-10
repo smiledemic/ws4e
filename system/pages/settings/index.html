@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link id="favicon" rel="icon" href="../../../assets/favicons/favicon.png" />
-<title>WannaSmile4Evr | Settings</title>
+<title>Settings · WannaSmile4Evr</title>
 
 <style>
 /* Same family as the Store (store.html): tilted panels with offset accent
@@ -279,6 +279,21 @@ kbd {
 .seg .btn.is-on:hover { background: var(--accent-color, #f44); }
 .item.is-off .seg { box-shadow: none; border-style: dashed; }
 
+/* Cursors: the size slider card + a live look at each cursor at that size. */
+.cursor-size { gap: 14px; }
+.cursor-size:hover { transform: none; }
+.cs-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cs-range { flex: 1 1 220px; min-width: 160px; accent-color: var(--accent-color, #f44); cursor: pointer; }
+.cs-value { min-width: 4.5ch; text-align: right; font-weight: bold; font-size: 1.1rem; text-shadow: 2px 2px 0 var(--accent-color, #f44); }
+.cs-presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.cs-presets .btn { flex: 0 0 auto; }
+.cs-preview { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; padding: 12px; border-radius: 10px; border: 2px dashed rgba(255,255,255,0.2);
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 1.5px, transparent 2px) 0 0 / 14px 14px, rgba(0,0,0,0.35); min-height: 96px; }
+.cs-preview figure { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; margin: 0; min-width: 52px; }
+.cs-preview figcaption { font-size: 0.7rem; opacity: 0.8; }
+.cs-note { padding: 12px 14px; border-radius: 12px; border: 2px dashed rgba(255,255,255,0.3); line-height: 1.5; font-size: 0.85rem; }
+.cs-note a { color: var(--accent-color, #f44); font-weight: bold; }
+.cs-note[hidden], #cursorsOn[hidden] { display: none; }
 .foot { display: flex; justify-content: flex-end; margin-top: 18px; }
 .foot .btn { flex: 0 0 auto; }
 
@@ -310,6 +325,7 @@ kbd {
     <a href="#behaviour">🧭 Page behaviour</a>
     <a href="#quotes">💬 Quotes</a>
     <a href="#bundles">🃏 Bundles</a>
+    <a href="#cursors">🖱️ Cursors</a>
   </nav>
 
   <section class="panel" id="paging" aria-labelledby="pagingTitle">
@@ -349,6 +365,28 @@ kbd {
     <p class="tip">Bundles are one card holding several versions of an asset (beta, v2, copies). <b>Keep version assets hidden</b> leaves the versions out entirely. The other versions fan out behind the front card like a hand of cards: <b>click</b> one peeking out, or <b>Shift+click</b> the card, to bring the next one up. <b>Click a card anywhere</b> below to flip it. Saved straight away and any open WannaSmile tab switches over.</p>
     <div class="grid" id="bundleGrid"></div>
     <div class="foot"><button type="button" class="btn" id="bundleResetBtn">↺ Reset bundle settings</button></div>
+  </section>
+
+  <section class="panel" id="cursors" aria-labelledby="cursorsTitle">
+    <div class="panel-head">
+      <h2 id="cursorsTitle"><span class="emoji" aria-hidden="true">🖱️</span>Cursors</h2>
+      <span class="picked" id="cursorsSummary"></span>
+    </div>
+    <p class="tip">Resize your custom cursors. Drag the slider and your real cursor changes as you go. Bigger sizes only get sharper up to the size the cursor art was drawn at, and browsers don't show cursors over 128px. Picking and switching on a cursor pack happens in the <a href="../store/index.html#cursors" style="color:var(--accent-color,#f44);font-weight:bold;">Store</a>. Any open WannaSmile tab follows along.</p>
+    <p class="cs-note" id="cursorsOff" hidden>🖱️ Custom cursors are off, so there's nothing to resize yet. Switch them on in the <a href="../store/index.html#cursors">Store</a> and the size controls show up here.</p>
+    <div id="cursorsOn" hidden>
+      <article class="item cursor-size">
+        <div class="item-name">Cursor size</div>
+        <p class="item-desc">Applies to every cursor in the active pack: the arrow, the pointing hand, the click, the grab and the nope.</p>
+        <div class="cs-row">
+          <input type="range" class="cs-range" id="cursorSize" aria-label="Cursor size in pixels" />
+          <output class="cs-value" id="cursorSizeOut" for="cursorSize"></output>
+        </div>
+        <div class="cs-presets" id="cursorPresets" role="group" aria-label="Size presets"></div>
+        <div class="cs-preview" id="cursorPreview" aria-label="The active pack's cursors at this size"></div>
+      </article>
+      <div class="foot"><button type="button" class="btn" id="cursorSizeReset">↺ Reset cursor size</button></div>
+    </div>
   </section>
 </div>
 
@@ -685,6 +723,97 @@ kbd {
     });
   }, { rootMargin: "-40% 0px -55% 0px" });
   document.querySelectorAll("section.panel").forEach((s) => io.observe(s));
+})();
+</script>
+
+<script>
+"use strict";
+// ── Cursors: size (cursors.js, WSCursors) ──────────────────────────────
+// Only shown while custom cursors are switched on (Store → Cursors). The
+// slider writes ws_cursor_size through WSCursors.setSize, which re-bakes the
+// pack at that size and repaints the live cursor on the spot; other open
+// tabs follow through the storage event.
+(() => {
+  const C = window.WSCursors;
+  const $ = (id) => document.getElementById(id);
+  const toast = (msg) => window.showToast?.(msg, 2000);
+  const on = $("cursorsOn"), off = $("cursorsOff");
+  const range = $("cursorSize"), out = $("cursorSizeOut");
+  const LABELS = { normal: "normal", point: "point", click: "click", grab: "grab", deny: "nope" };
+  const PRESETS = [["Small", 24], ["Default", 32], ["Large", 48], ["Huge", 64]];
+
+  if (!C || !C.setSize) { off.hidden = false; return; }
+
+  range.min = C.sizeMin; range.max = C.sizeMax; range.step = 2;
+
+  PRESETS.forEach(([name, px]) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn";
+    b.dataset.px = px;
+    b.textContent = `${name} ${px}px`;
+    b.addEventListener("click", () => { C.setSize(px); toast(`🖱️ Cursor size: ${px}px`); });
+    $("cursorPresets").appendChild(b);
+  });
+
+  let token = 0;
+  function paintPreview(size) {
+    const mine = ++token;
+    const box = $("cursorPreview");
+    C.preview(C.getActive(), size).then((urls) => {
+      if (mine !== token) return;   // a newer size already asked
+      box.replaceChildren(...C.states.map((state) => {
+        const fig = document.createElement("figure");
+        const img = document.createElement("img");
+        img.src = urls[state];
+        img.alt = `${LABELS[state]} cursor`;
+        const cap = document.createElement("figcaption");
+        cap.textContent = LABELS[state];
+        fig.append(img, cap);
+        return fig;
+      }));
+    });
+  }
+
+  function paint() {
+    const enabled = C.isEnabled();
+    on.hidden = !enabled;
+    off.hidden = enabled;
+    const size = C.getSize();
+    $("cursorsSummary").innerHTML = enabled
+      ? `size <b>${size}px</b> · pack <b>${C.getName(C.getActive())}</b>`
+      : `custom cursors are <b>off</b>`;
+    if (!enabled) return;
+    if (document.activeElement !== range) range.value = size;
+    out.textContent = `${size}px`;
+    document.querySelectorAll("#cursorPresets .btn").forEach((b) => {
+      const sel = Number(b.dataset.px) === size;
+      b.classList.toggle("is-on", sel);
+      b.setAttribute("aria-pressed", String(sel));
+    });
+    paintPreview(size);
+  }
+
+  // Live while dragging (the baking is cached per size, so it stays cheap),
+  // with the number following the thumb immediately.
+  let t = null;
+  range.addEventListener("input", () => {
+    out.textContent = `${range.value}px`;
+    clearTimeout(t);
+    t = setTimeout(() => C.setSize(range.value), 120);
+  });
+  range.addEventListener("change", () => { clearTimeout(t); C.setSize(range.value); });
+
+  $("cursorSizeReset").addEventListener("click", () => {
+    C.setSize(C.sizeDefault);
+    toast(`↺ Cursor size back to ${C.sizeDefault}px`);
+  });
+
+  document.addEventListener("ws:cursor-change", paint);
+  window.addEventListener("storage", (e) => {
+    if (e.key === null || ["ws_cursors_enabled", "ws_active_cursor", "ws_cursor_size"].includes(e.key)) paint();
+  });
+  paint();
 })();
 </script>
 </body>
