@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link id="favicon" rel="icon" href="../../../assets/favicons/favicon.png" />
+<title>Chat · WannaSmile4Evr</title>
+<link rel="preconnect" href="https://script.google.com" crossorigin />
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+<style>
+/* Same family as the Store, Settings, DMCA and Discord pages: panels with
+   offset accent shadows, polka dots, pill buttons, all coloured by the
+   active theme (themify.js). */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  min-height: 100%;
+  background: var(--main-bg, #111) center / cover fixed no-repeat;
+  background-color: #111;
+  overflow-x: hidden;
+}
+/* The active theme's background didn't load (themify.js): local Redux copy. */
+html.ws-bg-fallback { background-image: url("https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/themes/redux/mainBg.png"); }
+body {
+  min-height: 100vh;
+  overflow-x: clip;
+  padding: clamp(16px, 4vh, 48px) 16px 64px;
+  font-family: monospace;
+  color: var(--url-color, #fff);
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.10) 1.5px, transparent 2px) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+}
+a { color: inherit; }
+button, input, textarea { font: inherit; color: inherit; }
+.wrap { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: clamp(18px, 3vh, 30px); }
+
+/* ── Top ── */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.back {
+  color: var(--url-color, #fff);
+  text-decoration: none;
+  font-weight: bold;
+  padding: 7px 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 999px;
+  background: rgba(0,0,0,0.4);
+  transition: border-color 0.15s, color 0.15s, transform 0.15s;
+}
+.back:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); transform: translateX(-3px); }
+
+/* ── Panels ── */
+.panel {
+  padding: clamp(16px, 2.6vh, 28px);
+  border-radius: 20px 26px 22px 28px;
+  border: 3px solid var(--accent-color, #f44);
+  background: var(--aside-bg, rgba(0,0,0,0.92));
+  box-shadow: -8px 8px 0 var(--accent-color, #f44);
+}
+.panel h2 {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: clamp(18px, 2.6vh, 26px);
+  transform: rotate(-1.5deg);
+  text-shadow: 2px 2px 0 var(--accent-color, #f44);
+}
+.panel h2 .emoji { display: inline-block; margin-right: 6px; transform: rotate(-8deg); }
+.panel p { font-size: 0.85rem; line-height: 1.7; }
+h1 {
+  display: inline-block;
+  font-size: clamp(26px, 4.4vh, 42px);
+  line-height: 1.15;
+  transform: rotate(-2deg);
+  text-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.sub { margin-top: 8px; font-size: 0.85rem; opacity: 0.85; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 10px; border-radius: 999px;
+  border: 2px dashed rgba(255,255,255,0.4);
+  font-weight: bold; font-size: 0.75rem;
+}
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #f5c542; }
+.status.live::before { background: #4cd08a; }
+.status.off::before  { background: #ff6b6b; }
+.status.sync::before { animation: blink 1.4s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+
+/* ── Buttons / inputs ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--accent-color, #f44);
+  background: var(--accent-color, #f44);
+  color: #fff;
+  font: bold 0.82rem monospace;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.45);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.btn:hover { transform: translateY(-2px) rotate(-1deg); }
+.btn:active { transform: translateY(1px); box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+.btn.ghost { background: transparent; color: var(--url-color, #fff); border-color: rgba(255,255,255,0.35); box-shadow: none; }
+.btn.ghost:hover { border-color: var(--accent-color, #f44); color: var(--accent-color, #f44); }
+.btn.sm { padding: 4px 10px; font-size: 0.75rem; box-shadow: none; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn:focus-visible, .back:focus-visible, .friend:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--url-color, #fff); }
+input[type="text"], textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.06);
+  outline: none;
+}
+input[type="text"]:focus, textarea:focus { border-color: var(--accent-color, #f44); }
+::placeholder { color: inherit; opacity: 0.5; }
+
+/* ── Gate (not signed in / server not ready) ── */
+.gate { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px;
+  border: 2px dashed rgba(255,255,255,0.35); border-radius: 14px;
+  background: repeating-linear-gradient(-45deg, rgba(255,255,255,0.04) 0 10px, transparent 10px 20px); }
+.gate p { flex: 1; min-width: 220px; }
+.gate b { color: var(--accent-color, #f44); }
+
+/* ── Chat layout ── */
+#app[hidden], #gate[hidden] { display: none; }
+.chat { display: grid; grid-template-columns: 330px 1fr; gap: 18px; height: min(72vh, 680px); min-height: 440px; }
+.col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.col.panel { padding: 16px; }
+
+.me { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.avatar {
+  flex: none; width: 38px; height: 38px; border-radius: 30%;
+  border: 2px solid var(--accent-color, #f44);
+  background: rgba(255,255,255,0.08);
+  display: grid; place-items: center; font-weight: bold; text-transform: uppercase;
+  box-shadow: 3px 3px 0 var(--accent-color, #f44);
+}
+.me b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.me small { opacity: 0.7; font-size: 0.72rem; }
+.add { display: flex; gap: 8px; margin-bottom: 12px; }
+.list { flex: 1; overflow-y: auto; min-height: 0; padding-right: 4px; scrollbar-width: thin; }
+.group { font-size: 0.7rem; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; margin: 12px 0 6px; }
+.group:first-child { margin-top: 0; }
+.row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; margin-bottom: 6px;
+  border-radius: 16px 12px 18px 14px;
+  border: 2px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.05);
+}
+.row .nm { flex: 1; min-width: 0; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend {
+  width: 100%; text-align: left; cursor: pointer;
+  transition: transform 0.2s cubic-bezier(.3, 1.6, .5, 1), border-color 0.15s;
+}
+.friend:hover { transform: translateY(-2px) rotate(-0.6deg); border-color: var(--accent-color, #f44); }
+.friend.on { border-color: var(--accent-color, #f44); background: rgba(255,255,255,0.12); box-shadow: 4px 4px 0 var(--accent-color, #f44); }
+.friend .tx { flex: 1; min-width: 0; }
+.friend .pv { display: block; font-size: 0.72rem; opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: normal; }
+.dot { flex: none; min-width: 10px; height: 10px; border-radius: 999px; background: var(--accent-color, #f44); }
+.empty { text-align: center; opacity: 0.65; padding: 18px 8px; font-size: 0.82rem; line-height: 1.6; }
+
+.head { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 2px dashed rgba(255,255,255,0.25); margin-bottom: 12px; }
+.head .grow { flex: 1; min-width: 0; font-weight: bold; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.head .cap { font-size: 0.72rem; opacity: 0.7; font-weight: normal; margin-left: 6px; }
+#backBtn { display: none; }
+.thread { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 2px 6px 2px 2px; scrollbar-width: thin; }
+.msg { max-width: 78%; display: flex; flex-direction: column; animation: pop-in 0.25s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+@keyframes pop-in { from { transform: scale(0.92); opacity: 0; } }
+.msg.me { align-self: flex-end; align-items: flex-end; }
+.msg.them { align-self: flex-start; }
+.bubble {
+  padding: 8px 12px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; font-size: 0.88rem;
+  border: 2px solid rgba(255,255,255,0.22);
+}
+.me .bubble { background: var(--accent-color, #f44); border-color: var(--accent-color, #f44); color: #fff; border-radius: 16px 16px 4px 16px; }
+.them .bubble { background: rgba(255,255,255,0.08); border-radius: 16px 16px 16px 4px; }
+.msg.pending .bubble { opacity: 0.6; }
+.when { font-size: 0.66rem; opacity: 0.6; margin: 2px 4px 0; }
+.day { align-self: center; font-size: 0.68rem; opacity: 0.6; padding: 2px 10px; border-radius: 999px; border: 1px dashed rgba(255,255,255,0.3); }
+.note { font-size: 0.7rem; opacity: 0.6; text-align: center; margin-bottom: 4px; }
+.composer { display: flex; gap: 8px; align-items: flex-end; padding-top: 12px; margin-top: 12px; border-top: 2px dashed rgba(255,255,255,0.25); }
+.composer textarea { resize: none; min-height: 40px; max-height: 120px; }
+.count { font-size: 0.68rem; opacity: 0.6; text-align: right; margin-top: 4px; }
+.placeholder { flex: 1; display: grid; place-items: center; text-align: center; opacity: 0.7; font-size: 0.85rem; line-height: 1.7; padding: 20px; }
+.placeholder i { display: block; font-size: 2rem; margin-bottom: 10px; color: var(--accent-color, #f44); }
+
+@media (max-width: 760px) {
+  .chat { grid-template-columns: 1fr; height: min(78vh, 720px); }
+  .chat .conv { display: none; }
+  .chat.open .side { display: none; }
+  .chat.open .conv { display: flex; }
+  #backBtn { display: inline-flex; }
+  .msg { max-width: 90%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
+  .status.sync::before { animation: none; }
+  .friend:hover, .btn:hover { transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../../index.html">← Back to WannaSmile</a>
+  </div>
+
+  <section class="panel" aria-labelledby="chatTitle">
+    <h1 id="chatTitle">WannaChat</h1>
+    <p class="sub">Talk to friends on WannaSmile4Evr <span class="status sync" id="net" role="status">Connecting</span></p>
+  </section>
+
+  <!-- Not signed in / server not ready -->
+  <section class="panel" id="gate" hidden aria-live="polite">
+    <h2><span class="emoji" aria-hidden="true">🔒</span><span id="gateTitle">Sign in first</span></h2>
+    <div class="gate">
+      <p id="gateText">WannaChat uses the access ticket this browser already has. Open WannaSmile4Evr and finish the ticket step, then come back.</p>
+      <a class="btn" id="gateBtn" href="../../../index.html"><i class="fa-solid fa-house" aria-hidden="true"></i> Go to WannaSmile</a>
+    </div>
+  </section>
+
+  <!-- Chat -->
+  <div id="app" hidden>
+    <div class="chat" id="chat">
+      <aside class="col panel side" aria-label="Friends">
+        <div class="me">
+          <div class="avatar" id="meAvatar" aria-hidden="true">?</div>
+          <div style="min-width:0"><b id="meName">…</b><small>signed in with your ticket</small></div>
+        </div>
+        <form class="add" id="addForm" autocomplete="off">
+          <input type="text" id="addName" placeholder="Add a friend by username" maxlength="21" spellcheck="false" aria-label="Friend's username" />
+          <button class="btn" type="submit" id="addBtn" title="Send friend request"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></button>
+        </form>
+        <div class="list" id="list"></div>
+      </aside>
+
+      <section class="col panel conv" aria-label="Conversation">
+        <div class="placeholder" id="idle"><div><i class="fa-regular fa-comments" aria-hidden="true"></i>Pick a friend to start chatting,<br>or send someone a friend request.</div></div>
+        <div class="col" id="convBody" style="flex:1" hidden>
+          <div class="head">
+            <button class="btn ghost sm" id="backBtn" type="button" aria-label="Back to friends">‹</button>
+            <span class="grow"><span id="peer"></span><span class="cap" id="cap"></span></span>
+            <button class="btn ghost sm" id="removeBtn" type="button" title="Remove friend and delete this chat"><i class="fa-solid fa-user-minus" aria-hidden="true"></i> Remove</button>
+          </div>
+          <div class="thread" id="thread" aria-live="polite"></div>
+          <div>
+            <form class="composer" id="composer" autocomplete="off">
+              <textarea id="msg" rows="1" maxlength="500" placeholder="Message… (Enter to send, Shift+Enter for a new line)" aria-label="Message"></textarea>
+              <button class="btn" id="sendBtn" type="submit"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Send</button>
+            </form>
+            <div class="count"><span id="left">500</span> characters left · only the latest 60 messages are kept</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="../../js/endpoints.js"></script>
+<script src="../../js/utils.js"></script>
+<script src="../../js/ticket.js"></script>
+<script src="../../js/themify.js"></script>
+<script src="../../js/cursors.js"></script>
+<script src="../../js/chat.js"></script>
+</body>
+</html>

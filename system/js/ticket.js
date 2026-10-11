@@ -57,6 +57,7 @@
   const CLIENT_KEY = "ws_ticket_client";    // random per-browser id sent with the request
   const ASKED_KEY  = "ws_ticket_requested"; // "1" once this browser has sent its one request
   const USER_KEY   = "ws_username";         // the ticket's permanent username
+  const BACKUP_KEY = "ws_ticket_backup";    // last wiped ticket {id,key,username,at}; see revoke()
 
   const read  = (k) => { try { return localStorage.getItem(k) || ""; } catch (_) { return ""; } };
   const write = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (_) {} };
@@ -153,14 +154,19 @@
     return "pending";
   }
 
-  async function lookup(ticketId, key) {
+  // `strict`: a reply with no status at all (an Apps Script error/quota
+  // object, a half-loaded response) is treated as "couldn't reach the
+  // server" and throws, instead of being read as "no such ticket". Used by
+  // the background re-check, where "unknown" wipes the saved account.
+  async function lookup(ticketId, key, strict) {
     const res = await api({ type: "ticket", id: ticketId, ...(key ? { key } : {}) });
+    if (strict && !res?.status) throw new Error(res?.error || "No ticket status came back.");
     return res?.status ? normalize(res.status) : "unknown";
   }
 
   async function check() {
     if (!id()) return "unknown";
-    const st = await lookup(id(), secret());
+    const st = await lookup(id(), secret(), true);
     if (st === "approved" || st === "pending" || st === "denied") setState(undefined, st);
     return st;
   }
@@ -176,7 +182,14 @@
   // tutorial to put its ticket screen back up.
   function revoke(st) {
     st = normalize(st);
-    if (st === "unknown" || st === "missing") { write(ID_KEY, ""); write(STATUS_KEY, ""); write(SECRET_KEY, ""); write(USER_KEY, ""); }
+    if (st === "unknown" || st === "missing") {
+      // Keep a recovery copy so a wrongly-reported "unknown" is never a
+      // permanent loss (the key is the only way back into the ticket).
+      try {
+        if (id()) localStorage.setItem(BACKUP_KEY, JSON.stringify({ id: id(), key: secret(), username: username(), at: new Date().toISOString() }));
+      } catch (_) {}
+      write(ID_KEY, ""); write(STATUS_KEY, ""); write(SECRET_KEY, ""); write(USER_KEY, "");
+    }
     else write(STATUS_KEY, st === "denied" ? "denied" : "pending");
     window.WS_Ticket.ready = newReady();
     changed();
@@ -217,5 +230,19 @@
   const ready = newReady();
   if (approved()) resolveReady();
 
-  window.WS_Ticket = { ready, id, status, approved, asked, username, withTicket, request, info, check, verify, revoke, normalize };
+  // Puts back the ticket revoke() wiped (if any) and re-checks it with the
+  // server. Console: await WS_Ticket.restore()
+  async function restore() {
+    let b; try { b = JSON.parse(localStorage.getItem(BACKUP_KEY) || "null"); } catch (_) { b = null; }
+    if (!b?.id) return "none";
+    const st = await lookup(b.id, b.key, true);
+    if (st === "approved" || st === "pending" || st === "denied") {
+      write(USER_KEY, b.username || "");
+      setState(b.id, st, b.key || "");
+      write(BACKUP_KEY, "");
+    }
+    return st;
+  }
+
+  window.WS_Ticket = { ready, id, status, approved, asked, username, withTicket, request, info, check, verify, revoke, restore, normalize };
 })();

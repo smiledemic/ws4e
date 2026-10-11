@@ -175,6 +175,24 @@
     return { ok: true };
   }
 
+  // Paid assets (the sheet's credit-price column): one purchase per asset,
+  // kept in ws_unlocks under "asset:<link>", so it travels in the data file
+  // with the rest and re-downloading is free. purchase() -> { ok, already? }
+  // | { ok:false, error:"not_enough", need, balance }.
+  const assetKey = (link) => "asset:" + String(link || "").trim();
+  const hasPurchased = (link) => !!unlocked()[assetKey(link)];
+
+  function purchase(link, cost, name = "asset") {
+    cost = Math.floor(+cost || 0);
+    if (!link) return { ok: false, error: "unknown" };
+    if (cost <= 0 || hasPurchased(link)) return { ok: true, already: true };
+    if (cost > balance()) return { ok: false, error: "not_enough", need: cost - balance(), balance: balance() };
+    spend(cost, `Download: ${name}`);
+    writeJSON(UNL_KEY, { ...unlocked(), [assetKey(link)]: new Date().toISOString() });
+    changed({ type: "unlock", id: assetKey(link) });
+    return { ok: true };
+  }
+
   // ── Site alerts: Shoelace alerts sliding in at the top right ──────────
   // (sl-alert.toast()), styled like the asset description card: theme
   // panel, accent border + offset accent shadow, a slight tilt, monospace.
@@ -293,7 +311,7 @@
 
   window.WS_Credits = {
     balance, history, achievements, hasAchievement, award, add, spend,
-    unlockables, isUnlocked, unlock,
+    unlockables, isUnlocked, unlock, hasPurchased, purchase,
     progress, noteRating, noteVisit,
   };
 })();

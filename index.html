@@ -4,16 +4,26 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link id="favicon" rel="icon" href="assets/favicons/favicon.png"/>
-<title>WannaSmile4Evr | Home</title>
+<title>WannaSmile4Evr</title>
+
 <!-- Asset data comes from Apps Script, which redirects to
      script.googleusercontent.com — open both connections right away. -->
 <link rel="preconnect" href="https://script.google.com" crossorigin />
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
+<!-- Images, themes and the loader gif come from raw.githubusercontent.com; the
+     CDN hosts serve Shoelace and Font Awesome. Warm those connections up too. -->
+<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+<!-- Icons (main.js would add this same link later): start it now, without blocking render. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" /></noscript>
 
 <!-- Word filter (nickname/ticket checks): no DOM needed, so it loads here and
      starts fetching its list straight away. See wordfilter.js. -->
 <script src="system/js/endpoints.js"></script>
 <script src="system/js/wordfilter.js"></script>
+
 <script>
 // Start the asset fetch now, from the <head>, instead of waiting for every
 // stylesheet, CDN script and main.js to download and DOMContentLoaded to
@@ -42,7 +52,8 @@
 })();
 </script>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/themes/dark.css" /></noscript>
 <!-- Shoelace components (sl-alert for achievement pop-ups, credits.js). -->
 <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.9.0/cdn/shoelace-autoloader.js"></script>
 <link rel="stylesheet" href="system/css/main.css" />
@@ -104,12 +115,18 @@
 (function () {
   var FALLBACK = ["https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loading.gif", "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/redux/loaded.gif"];
 
-  var urls = null;
+  var urls = null, mineActive = false;
   try {
     var activeId = (localStorage.getItem("ws_active_gifpack") || "redux").trim().toLowerCase();
     var cache    = JSON.parse(localStorage.getItem("ws_gifpack_cache") || "{}");
     var pack     = cache && typeof cache === "object" ? cache[activeId] : null;
     var states   = pack && pack.states ? pack.states : null;
+    // One of the user's own gif packs (data: gifs, ws_custom_gifpacks) needs
+    // no download at all, so don't preload redux's while it's active.
+    if (!states && activeId.indexOf("my-") === 0) {
+      var mine = JSON.parse(localStorage.getItem("ws_custom_gifpacks") || "{}");
+      if (mine && mine[activeId]) { urls = []; mineActive = true; }
+    }
     if (states) {
       urls = ["loading", "loaded"]
         .map(function (key) { return states[key] && states[key].src; })
@@ -117,7 +134,7 @@
     }
   } catch (_) { urls = null; }
 
-  (urls && urls.length ? urls : FALLBACK).forEach(function (href) {
+  (urls && (urls.length || mineActive) ? urls : FALLBACK).forEach(function (href) {
     var link = document.createElement("link");
     link.rel  = "preload";
     link.as   = "image";
@@ -128,7 +145,6 @@
 </script>
 
 <link rel="preload" as="image" href="https://i.redd.it/kjektcn4myv91.png" />
-<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" rel="stylesheet">
 </head>
 
 <body class="ws-loading">
@@ -152,7 +168,7 @@
           <img src="assets/images/header-arrows/right-arrow.png" />
         </button>
         <a href="system/pages/store/index.html" target="_blank">STORE</a>
-        <a href="#" title="Coming soon">NEWS</a>
+        <a href="system/pages/news/index.html" target="_blank">NEWS</a>
 
         <button class="mute-btn">
           <img src="assets/images/audio-toggle-btn/mute.png" id="muteToggleImg" />
@@ -180,6 +196,10 @@
 
         <button type="button" id="openShortCuts" class="hdr-icon-btn" title="Shortcuts" aria-label="Keyboard shortcuts">
           <img src="assets/images/icons/shortcuts.png" alt="" />
+        </button>
+
+        <button type="button" id="openDm" class="hdr-icon-btn" title="Chat (DMs)" aria-label="Open WannaChat">
+          <img src="assets/images/icons/dm.png" alt="" />
         </button>
 
       </div>
@@ -217,9 +237,9 @@
     <code id="dashTicketId" role="button" tabindex="0">no ticket</code>
   </div>
   <a href="#" id="openUpdates" title="See what's new">Updates &amp; changes</a>
-  <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
-  <a href="system/pages/credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
+    <a href="system/pages/credits-n-achievements/index.html" target="_blank" id="openCredits" title="Your credits, achievements and early unlocks">Credits &amp; achievements</a>
   <a href="#" id="openRefer" title="Share WannaSmile with a friend">Refer a friend</a>
+    <a href="#" id="openTour" title="Walk through the site again">Tutorial</a>
   <a href="#" id="clearData">Clear My Data</a>
 </aside>
 
@@ -406,36 +426,36 @@
   </div>
 </div>
 
-<script src="system/js/utils.js"></script>
-<script src="system/js/datacache.js"></script>
-<script src="system/js/paging.js"></script>
-<script src="system/js/ticket.js"></script>
-<script src="system/js/themify.js"></script>
-<script src="system/js/frames.js"></script>
-<script src="system/js/wrappers.js"></script>
-<script src="system/js/cursors.js"></script>
-<script src="system/js/sanitizer.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-<script src="system/js/profile.js"></script>
-<script src="system/js/settings.js"></script>
-<script src="system/js/ui.js"></script>
-<script src="system/js/stickers.js"></script>
-<script src="system/js/quotes.js"></script>
-<script src="system/js/main.js"></script>
-<script src="system/js/boom.js"></script>
-<script src="system/js/panic.js"></script>
-<script src="system/js/shortcuts.js"></script>
-<script src="system/js/widgets.js"></script>
-<script src="system/js/rusure.js"></script>
-<script src="system/js/vendor/qrcode.js"></script>
-<script src="system/js/refer.js"></script>
-<script src="system/js/updates.js"></script>
-<script src="system/js/data.js"></script>
-<script src="system/js/gridSettings.js"></script>
-<script src="system/js/credits.js"></script>
-<script src="system/js/devtools.js"></script>
-<script src="system/js/tutorial.js"></script>
-<script src="system/js/daily.js"></script>
+<script defer src="system/js/utils.js"></script>
+<script defer src="system/js/datacache.js"></script>
+<script defer src="system/js/paging.js"></script>
+<script defer src="system/js/ticket.js"></script>
+<script defer src="system/js/themify.js"></script>
+<script defer src="system/js/frames.js"></script>
+<script defer src="system/js/wrappers.js"></script>
+<script defer src="system/js/cursors.js"></script>
+<script defer src="system/js/sanitizer.js"></script>
+<script defer src="system/js/profile.js"></script>
+<script defer src="system/js/settings.js"></script>
+<script defer src="system/js/ui.js"></script>
+<script defer src="system/js/stickers.js"></script>
+<script defer src="system/js/quotes.js"></script>
+<script defer src="system/js/main.js"></script>
+<script defer src="system/js/boom.js"></script>
+<script defer src="system/js/panic.js"></script>
+<script defer src="system/js/shortcuts.js"></script>
+<script defer src="system/js/widgets.js"></script>
+<script defer src="system/js/rusure.js"></script>
+<script defer src="system/js/vendor/qrcode.js"></script>
+<script defer src="system/js/refer.js"></script>
+<script defer src="system/js/updates.js"></script>
+<script defer src="system/js/data.js"></script>
+<script defer src="system/js/gridSettings.js"></script>
+<script defer src="system/js/credits.js"></script>
+<script defer src="system/js/devtools.js"></script>
+<script defer src="system/js/tutorial.js"></script>
+<script defer src="system/js/daily.js"></script>
+<script defer src="system/js/version.js"></script>
 
 </body>
 </html>

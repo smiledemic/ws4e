@@ -188,7 +188,7 @@ window.addEventListener("load", () => {
   const FAV_KEY        = "ws_favorites";
   const FAV_LEGACY_KEY = "favorites";   // the old Set-based favorites
   const FAV_PAGE_SIZE  = 75;            // same cap as a main-asset page
-  const IMG_WAIT_MS    = 10000;         // longest one icon may hold up its page's loader
+  const IMG_WAIT_MS    = 7000;          // longest one icon may hold up its page's loader on a normal connection (see _imgWaitMs)
 
   function initFavorites() {
     let list = [];
@@ -286,6 +286,48 @@ window.addEventListener("load", () => {
 
   window._loaderSequenceRunning = false;
 
+  // ── Build / loader state ───────────────────────────────────────────────
+  // One "build" is one createAssetCards() call. A page only counts as built
+  // when every card on it has genuinely settled its icon (the "ready" class),
+  // and the loaded state (the "loaded" gif that ends the boot loader) starts
+  // only once EVERY page of the build is built (_allPagesBuilt), never on the
+  // strength of the first page alone.
+  window._allPagesBuilt = false;
+  let _buildId = 0;            // bumped per build / reload; late callbacks from an older build are dropped
+  let _loaderSeq = 0;          // bumped whenever a loader sequence starts or is cancelled
+  let _loaderFinishTimer = 0;
+
+  // Built = all of a view page's cards are ready. Reads the cards actually
+  // shown on that view page (_cardIndex), so it stays right for A-Z across
+  // pages, where a view page mixes cards from several sheet pages.
+  const _pageIsBuilt = (viewPage) => window._allPagesBuilt
+    || (window._cardIndex?.get(viewPage) || []).every((c) => c.classList.contains("ready"));
+
+  function _cancelLoaderSequence() {
+    _loaderSeq++;
+    clearTimeout(_loaderFinishTimer);
+    window._loaderSequenceRunning = false;
+  }
+
+  // Guard: a navigation loader (put up by flipping to an unbuilt page) never
+  // outlives the page being built. The boot/reload loader is left alone (it
+  // only ends on _allPagesBuilt), and so is a loaded gif that is mid-play.
+  function _releaseNavLoader() {
+    const loader = document.getElementById("containerLoader");
+    if (!loader || loader.dataset.kind !== "nav" || window._loaderSequenceRunning) return;
+    _cancelLoaderSequence();
+    loader.remove();
+    document.body.classList.remove("ws-loading");
+  }
+
+  // A card settled or a build finished: a navigation loader ends once the
+  // page you're on is built.
+  function _onBuildProgress() {
+    const loader = document.getElementById("containerLoader");
+    if (!loader || loader.dataset.kind !== "nav") return;
+    if (_pageIsBuilt(+window.currentPage)) runLoaderSequence();
+  }
+
   function _getTheme() {
     return document.documentElement.getAttribute("theme") || DEFAULT_THEME;
   }
@@ -295,25 +337,168 @@ window.addEventListener("load", () => {
     const loader = document.getElementById("containerLoader");
     if (!loader) return;
     window._loaderSequenceRunning = true;
+    const seq = ++_loaderSeq;
 
-    const finish = () => { loader.remove(); document.body.classList.remove("ws-loading"); };
+    const finish = () => {
+      if (seq !== _loaderSeq) return;   // cancelled: a newer loader owns the screen
+      window._loaderSequenceRunning = false;
+      loader.remove();
+      document.body.classList.remove("ws-loading");
+    };
 
     const img = loader.querySelector("img");
     if (!img) { finish(); return; }
 
     getLoadedGifDuration()
+      .catch(() => 2000)
       .then(ms => {
-
+        if (seq !== _loaderSeq) return;
         applyGifToImg(img, _getTheme(), "loaded");
-        setTimeout(finish, ms);
-      })
-      .catch(() => {
-        applyGifToImg(img, _getTheme(), "loaded");
-        setTimeout(finish, 2000);
+        _loaderFinishTimer = setTimeout(finish, ms);
       });
   }
 
+  // ── Icon load plan ─────────────────────────────────────────────────────
+  // Icons used to all start at once, with a stall timer running from the
+  // moment each was *queued*. On a slow or flaky connection the browser only
+  // runs a handful of requests per host, so icons waiting their turn timed
+  // out without ever having been requested and were swapped for the
+  // placeholder for good. Now a small pool starts icons in priority order and
+  // each stall timer only starts when that icon's request actually starts.
+  //
+  // Which order depends on how the user browses, so each paging setup runs
+  // on its own lane (see _lane). A lane with priority:false is the off
+  // switch: no ranking, every icon in grid order, nothing favoured.
+  //
+  //   paged      sheet / A–Z (local or across pages), filters per page:
+  //              the page you're on first, then outward (arrows wrap)
+  //   spanning   paged, but a search/filter is showing matches from every
+  //              page at once: matches first
+  //   favorites  favorites view (cards from every page): favorites first
+  //   pageless   no pages, so nothing to prioritise: flat, grid order
+  const LOAD_LANES = {
+    paged:     { priority: true  },
+    spanning:  { priority: true  },
+    favorites: { priority: true  },
+    pageless:  { priority: false },
+  };
+
+  // Slower links get a longer stall limit and fewer parallel requests, so a
+  // slow icon isn't mistaken for a missing one.
+  const _conn      = () => navigator.connection || {};
+  const _slowLevel = () => {
+    const c = _conn();
+    return c.saveData || c.effectiveType === "slow-2g" || c.effectiveType === "2g" ? 2
+         : c.effectiveType === "3g" ? 1 : 0;
+  };
+  const _imgWaitMs = () => [IMG_WAIT_MS, IMG_WAIT_MS * 1.7, IMG_WAIT_MS * 3][_slowLevel()];
+  const _poolSize  = () => [10, 6, 3][_slowLevel()];
+
+  const _loadPlan = (() => {
+    let pending = [];   // { card, img, start } not yet started
+    let active  = 0;
+    let lastKey = "";
+
+    function lane() {
+      if (window.WS_Favorites?.viewOn) return "favorites";
+      const layout = window.WS_Paging?.effective?.().layout ?? "paged";
+      if (layout === "pageless") return "pageless";
+      return window._spanningAll ? "spanning" : "paged";
+    }
+
+    // Lower runs first. Bundle faces trail their lead card by half a step.
+    function rank(c, name, ctx) {
+      const host = c._host || c;
+      const sub  = host === c ? 0 : 0.5;
+      if (!LOAD_LANES[name].priority) return 0;
+      if (name === "favorites") {
+        const keys = host._favKeys || [host._favKey];
+        return (keys.some((k) => k && window.WS_Favorites?.has(k)) ? 0 : 2) + sub;
+      }
+      if (name === "spanning") return (host.dataset.filtered === "true" ? 0 : 2) + sub;
+      // paged: circular distance from the current page, by the page each
+      // card shows on (the view page, which A–Z across pages re-deals)
+      const i = ctx.pages.indexOf(host._viewPage);
+      const d = i < 0 ? ctx.pages.length : Math.abs(i - ctx.cur);
+      return Math.min(d, ctx.pages.length - d) + sub;
+    }
+
+    function replan(name) {
+      const pages = [...(window._cardIndex?.keys() || [])].sort((a, b) => a - b);
+      const ctx = { pages, cur: Math.max(0, pages.indexOf(+window.currentPage)) };
+      const pos = new Map();
+      [...(window.dom?.container?.children || [])].forEach((el, i) => pos.set(el, i));
+      for (const e of pending) {
+        e.rank = rank(e.card, name, ctx);
+        e.pos  = pos.get(e.card._host || e.card) ?? 1e9;
+      }
+      pending.sort((a, b) => a.rank - b.rank || a.pos - b.pos);
+    }
+
+    function pump() {
+      const name = lane();
+      while (active < _poolSize() && pending.length) {
+        const e = pending.shift();
+        active++;
+        let freed = false;
+        const free = () => { if (freed) return; freed = true; clearTimeout(guard); active--; pump(); };
+        // Safety net: a job that never reports back can't hold a slot forever.
+        const guard = setTimeout(free, _imgWaitMs() * 4);
+        if (LOAD_LANES[name].priority && e.img) e.img.fetchPriority = e.rank < 1 ? "high" : e.rank < 2 ? "auto" : "low";
+        try { e.start(free); } catch (_) { free(); }
+      }
+    }
+
+    return {
+      lane,
+      // New build: icons still queued from the last one are dropped.
+      reset() { pending = []; lastKey = ""; },
+      start(entries) { pending = entries.slice(); lastKey = ""; this.touch(true); },
+      // Re-rank when the lane or the page being looked at changes (cheap
+      // no-op otherwise). force: the card→page mapping itself changed.
+      touch(force) {
+        if (!pending.length) return;
+        const name = lane();
+        const key  = name + "|" + (LOAD_LANES[name].priority ? +window.currentPage : "");
+        if (!force && key === lastKey) return;
+        lastKey = key;
+        replan(name);
+        pump();
+      },
+      // Back online: queue another try for icons whose hosted image failed
+      // since `since`, at most twice per card.
+      retry(since) {
+        const cards = [];
+        for (const c of window._allCards || []) { cards.push(c); for (const v of c._versions || []) if (v.card !== c) cards.push(v.card); }
+        let n = 0;
+        for (const c of cards) {
+          if (!c._retryIcon || !c._fellBackAt || c._fellBackAt < since || (c._retries || 0) >= 2) continue;
+          c._retries = (c._retries || 0) + 1;
+          c._fellBackAt = 0;
+          pending.push({ card: c, img: c._icon, start: c._retryIcon });
+          n++;
+        }
+        if (n) {
+          window.showToast?.("Back online. Retrying icons that didn't load.", 2600);
+          lastKey = "";
+          this.touch(true);
+        }
+      },
+    };
+  })();
+  window.WS_LoadPlan = { lane: _loadPlan.lane, lanes: LOAD_LANES };
+
+  let _offlineSince = navigator.onLine === false ? Date.now() : 0;
+  window.addEventListener("offline", () => { _offlineSince = Date.now(); });
+  window.addEventListener("online", () => {
+    // 30 s of slack: icons usually stall *before* the browser notices the drop.
+    const since = _offlineSince ? _offlineSince - 30000 : 0;
+    _offlineSince = 0;
+    if (since) _loadPlan.retry(since);
+  });
+
   function runCrashSequence() {
+    _buildId++;   // nothing from an older build may end the crash screen
     if (window._loaderSequenceRunning) return;
     const loader = document.getElementById("containerLoader");
     if (!loader) return;
@@ -331,12 +516,6 @@ window.addEventListener("load", () => {
         applyGifToImg(img, _getTheme(), "crash");
         setTimeout(() => { applyGifToImg(img, _getTheme(), "ded"); }, ms);
       });
-  }
-
-  function _dismissPageLoader(pageNum) {
-    if (+window.currentPage !== pageNum) return;
-
-    runLoaderSequence();
   }
 
   function buildEmbedShell(embedSrc, title, fav) {
@@ -390,6 +569,8 @@ window.addEventListener("load", () => {
   const _FIELD_ALIASES = {
     category:    ["category", "categories", "cat"],
     subcategory: ["sub-category", "subcategory", "sub category", "subcat"],
+    // AssetBuilderWS column M: whole credits the ⬇ button costs (blank/0 = free)
+    creditPrice: ["credit-price"],
   };
   const _normKey = (k) => String(k).toLowerCase().replace(/[\s_-]/g, "");
 
@@ -430,7 +611,7 @@ window.addEventListener("load", () => {
     return out;
   };
 
-  const _MOVE_TO_TYPE = ["shiny", "disco", "animated", "grail"];
+  const _MOVE_TO_TYPE = ["shiny", "disco", "animated", "grail", "qwerty"];
   // type values (spaces, dashes and underscores ignored) that mark an
   // asset as early access: "early access", "early-access", "tester", …
   const _EARLY_ACCESS_TYPES = new Set(["earlyaccess", "tester", "testers"]);
@@ -901,8 +1082,11 @@ window.addEventListener("load", () => {
     const cat     = _firstFilled(row, cols.category);
     const sub     = _firstFilled(row, cols.subcategory);
 
+    const priceRaw = _firstFilled(row, cols.creditPrice);
+    const creditPrice = Math.max(0, parseInt(priceRaw, 10) || 0);
+
     return {
-      title, author,
+      title, author, creditPrice,
       titleLC:     title.toLowerCase(),
       authorLC:    author.toLowerCase(),
       link:        rawLink || config.fallbackLink,
@@ -953,26 +1137,123 @@ window.addEventListener("load", () => {
 
   // A sheet row flagged with this type (stacked in the "type" column
   // alongside/instead of others — see _parseStack) opens its own "link"
-  // cell — same as any other asset, the sheet stays the source of truth —
-  // but through openInBlankTab below instead of navigating the new tab
-  // straight to that URL. "qwerty" is just a placeholder while this is
-  // being tested from the sheet.
+  // cell — the sheet stays the source of truth — through openViaWorker below
+  // instead of navigating the new tab straight to that URL. "qwerty" is just
+  // a placeholder while this is being tested from the sheet. It may sit in
+  // either the type or the status column (see _MOVE_TO_TYPE).
   const REALMZ_TYPE_TOKEN = "qwerty";
 
-  // window.open() a blank tab, then append an <iframe src="url"> to it, so
-  // the opened tab's own address bar stays on about:blank.
-  function openInBlankTab(url) {
-    const tab = window.open();
-    if (!tab) return false;
-    tab.document.body.style.margin   = "0";
-    tab.document.body.style.padding  = "0";
-    tab.document.body.style.overflow = "hidden";
-    const iframe = tab.document.createElement("iframe");
-    iframe.style.width  = "100vw";
-    iframe.style.height = "100vh";
-    iframe.style.border = "none";
-    iframe.src = url;
-    tab.document.body.appendChild(iframe);
+  // ── Cloudflare Worker HTML opener ────────────────────────────────────
+  // qwerty accepts any well-formed absolute HTTP(S) URL; there is no
+  // hard-coded hostname allowlist in the frontend. The Worker must still
+  // enforce server-side URL/redirect checks and block private/internal hosts.
+  // This fetches the initial HTML document only; it is not a general
+  // asset or WebSocket relay.
+  const FETCH_API = window.WS_ENDPOINTS?.fetch ||
+    "https://ankom-url-api.ankomstudios.workers.dev/fetch?url=";
+  const FETCH_TIMEOUT = 25000;
+  const FETCH_MAX_REDIRECTS = 5;
+  const FETCH_SANDBOX = "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox " +
+                        "allow-modals allow-pointer-lock allow-downloads allow-presentation";
+
+  function normalizeFetchURL(value) {
+    try {
+      const u = new URL(String(value).trim());
+      if ((u.protocol !== "https:" && u.protocol !== "http:") ||
+          !u.hostname || u.username || u.password) return null;
+      return u.href;
+    } catch (_) { return null; }
+  }
+
+  async function fetchWorkerHTML(value, redirectCount = 0) {
+    const url = normalizeFetchURL(value);
+    if (!url) {
+      throw new Error("Enter a valid absolute HTTP(S) URL without embedded credentials.");
+    }
+    if (redirectCount > FETCH_MAX_REDIRECTS) {
+      throw new Error("The page redirected too many times.");
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    try {
+      const response = await fetch(FETCH_API + encodeURIComponent(url), {
+        method: "GET",
+        mode: "cors",
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error("Worker HTTP " + response.status);
+      const data = await response.json();
+      if (data.redirect) {
+        const next = normalizeFetchURL(new URL(data.redirect, url).href);
+        if (!next) throw new Error("The upstream returned an invalid redirect URL.");
+        return fetchWorkerHTML(next, redirectCount + 1);
+      }
+      if (data.error) throw new Error(data.error);
+      if (data.encoding && data.encoding !== "text") {
+        throw new Error("The Worker returned a non-text document; this opener expects HTML/text.");
+      }
+      if (typeof data.body !== "string") throw new Error("Unexpected Worker response: missing text body.");
+      const finalURL = normalizeFetchURL(data.url || url);
+      return { html: data.body, url: finalURL || url, contentType: data.contentType || "text/html" };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function openViaWorker(url, title, icon) {
+    const normalizedURL = normalizeFetchURL(url);
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) { window.showToast?.("Pop-up blocked. Allow pop-ups to open this.", 3200); return false; }
+    if (!normalizedURL) {
+      tab.close();
+      window.showToast?.("Enter a valid absolute HTTP(S) URL.", 3500);
+      return false;
+    }
+
+    const doc = tab.document;
+    doc.title = title || "Embed";
+    if (icon) {
+      const link = doc.createElement("link");
+      link.rel = "icon";
+      let href = icon;
+      try { href = new URL(window.toMediabase ? window.toMediabase(icon) : icon, location.href).href; } catch (_) {}
+      link.href = href;
+      link.setAttribute("crossorigin", "anonymous");
+      doc.head.appendChild(link);
+    }
+    doc.body.style.cssText = "margin:0;padding:0;overflow:hidden;background:#000;color:#fff;font:14px monospace";
+    const status = doc.createElement("div");
+    status.style.cssText = "position:fixed;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;white-space:pre-wrap;padding:24px;text-align:center";
+    status.textContent = "Loading page through your Cloudflare Worker…";
+    doc.body.appendChild(status);
+
+    (async () => {
+      try {
+        const result = await fetchWorkerHTML(normalizedURL);
+        if (tab.closed) return;
+        const parsed = new DOMParser().parseFromString(result.html, "text/html");
+        const base = parsed.createElement("base");
+        base.href = result.url;
+        parsed.head.insertBefore(base, parsed.head.firstChild);
+        const frame = doc.createElement("iframe");
+        frame.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;background:#fff";
+        frame.setAttribute("allow", "fullscreen; autoplay; gamepad; clipboard-write");
+        frame.setAttribute("sandbox", FETCH_SANDBOX);
+        frame.srcdoc = "<!DOCTYPE html>" + parsed.documentElement.outerHTML;
+        status.remove();
+        doc.body.appendChild(frame);
+      } catch (err) {
+        console.error("[Cloudflare Worker HTML opener]", err);
+        if (tab.closed) return;
+        status.textContent = "Could not load this page through the Worker.\n" + (err?.message || String(err)) + "\n\n";
+        const direct = doc.createElement("a");
+        direct.href = normalizedURL;
+        direct.textContent = "Open it directly instead";
+        direct.style.cssText = "color:#8cf;text-decoration:underline";
+        status.appendChild(direct);
+      }
+    })();
     return true;
   }
 
@@ -987,7 +1268,7 @@ window.addEventListener("load", () => {
     const renderFav     = matched ? matched.imageTrim : "";
 
     if (matched?.typeSet?.has(REALMZ_TYPE_TOKEN)) {
-      openInBlankTab(resolvedLink);
+      openViaWorker(resolvedLink, renderTitle, matched.imageTrim || matched.image || "");
       return;
     }
 
@@ -1492,7 +1773,7 @@ window.addEventListener("load", () => {
     window._openBugMenu = null;
     const imagePromises = [];
     const frag          = document.createDocumentFragment();
-    const activePage    = +window.currentPage || +sessionStorage.getItem("currentPage") || 1;
+    const loadEntries   = [];   // icons to start, in the order _loadPlan ranks them
 
     const isDevPage = window._containerMode === "dev";
 
@@ -1500,6 +1781,12 @@ window.addEventListener("load", () => {
     // the previous render's cards don't linger in the index.
     window._cardIndex = new Map();
     window._allCards  = [];
+
+    // New build: nothing is built yet, and callbacks of any earlier build
+    // (an R refetch or refreshCards while its icons were still loading) go stale.
+    const buildId = ++_buildId;
+    window._allPagesBuilt = false;
+    _loadPlan.reset();
 
     // Cards are built in sheet order; their grid order (sheet / A–Z, per
     // page or across everything) comes from WS_Paging.orderCards below.
@@ -1696,7 +1983,6 @@ window.addEventListener("load", () => {
       const typeSet    = m.typeSet;
 
       const pageNum    = m.page;
-      const isActivePage = pageNum === activePage;
       const favKey     = m.titleLC;
 
       const card = document.createElement("div");
@@ -1737,8 +2023,10 @@ window.addEventListener("load", () => {
       const img = document.createElement("img");
       img.alt           = title;
       img.className     = "asset-img";
-      img.fetchPriority = isActivePage ? "high" : "auto";
+      img.fetchPriority = "auto";   // _loadPlan raises or lowers it when this icon's turn comes
 
+      let startIcon = () => {};
+      let jobDone   = null;   // ends this icon's slot in the load pool
       const imgPromise = new Promise((resolve) => {
         // Four tiers: the real hosted image; then, running locally, a staged
         // icon from iconsN/<project>/ at the repo root (not on the R2 bucket
@@ -1749,30 +2037,40 @@ window.addEventListener("load", () => {
         // it's obvious at a glance which cards have no icon anywhere. A staged
         // icon doesn't glow: it exists, just isn't uploaded yet.
         const hasRealImage  = !!m.imageTrim;
-        // The ../<name>/icon.png guess only exists on a local checkout with
+        // The ../<n>/icon.png guess only exists on a local checkout with
         // the asset folders beside the site. On the deployed site it was a
         // guaranteed 404 for every missing image (~540 dead requests per
         // load, competing with the real images), so it's local-only.
         const localFallback = _isLocalSite() ? localIconFallback(link) : "";
         let   watchdog;
         const clearWatchdog = () => clearTimeout(watchdog);
-        const onLoad        = () => { clearWatchdog(); resolve(); };
+        const onLoad        = () => {
+          clearWatchdog();
+          resolve();
+          const d = jobDone; jobDone = null;
+          if (d) d();
+        };
+        // The hosted image itself arrived (first try, or a retry after the
+        // connection came back): no longer a fallback.
+        const onRealLoad    = () => { img.classList.remove("img-fallback"); card._fellBackAt = 0; onLoad(); };
         const markFallback  = () => img.classList.add("img-fallback");
 
         // Re-armed before every tier's img.src is set: a host that neither
-        // loads nor errors within IMG_WAIT_MS is treated the same as a load
+        // loads nor errors within the wait is treated the same as a load
         // error (falls through to the next tier) instead of just resolving
         // the card "ready" with nothing actually rendered — a card only
         // counts as ready once some image has genuinely finished loading,
-        // same as one with a real hosted image.
-        const arm = (onStall) => { clearWatchdog(); watchdog = setTimeout(onStall, IMG_WAIT_MS); };
+        // same as one with a real hosted image. The wait is counted from
+        // when the request starts (the load pool starts icons in order), and
+        // is longer on slow connections.
+        const arm = (onStall) => { clearWatchdog(); watchdog = setTimeout(onStall, _imgWaitMs()); };
 
         const tryFinal = () => {
           markFallback();
           img.onload  = onLoad;
           // Nothing left to fall back to: a stall here still has to give up
           // eventually so it doesn't hold the whole page's loader hostage,
-          // but only after this image itself got its full IMG_WAIT_MS try.
+          // but only after this image itself got its full wait.
           img.onerror = onLoad;
           arm(onLoad);
           img.src = config.fallbackImage;
@@ -1792,6 +2090,9 @@ window.addEventListener("load", () => {
 
         // Each staged icon in turn; the first one that loads wins.
         const tryStaged = () => {
+          // The hosted image failed or stalled: remember when, so a retry
+          // can pick it up if that was the connection dropping.
+          if (hasRealImage && !card._fellBackAt) card._fellBackAt = Date.now();
           _localIconCandidates(m, link).then((urls) => {
             const next = () => {
               const url = urls.shift();
@@ -1805,15 +2106,20 @@ window.addEventListener("load", () => {
           }, tryLocal);
         };
 
-        if (!hasRealImage) {
-          tryStaged();
-        } else {
-          img.onload  = onLoad;
+        // Runs when the load pool reaches this icon (or on a retry);
+        // done() frees the pool slot once the icon settles.
+        startIcon = (done) => {
+          jobDone = done || null;
+          if (!hasRealImage) { tryStaged(); return; }
+          img.onload  = onRealLoad;
           img.onerror = tryStaged;
           arm(tryStaged);
           img.src = imageSrc;
-        }
+        };
+        if (hasRealImage) card._retryIcon = (done) => startIcon(done);
       });
+      card._icon = img;
+      loadEntries.push({ card, img, start: (done) => startIcon(done) });
       if (primary) imagePromises.push({ promise: imgPromise, page: pageNum, card });
       wrapper.appendChild(img);
 
@@ -1944,11 +2250,42 @@ window.addEventListener("load", () => {
 
       const dlBtn = document.createElement("button");
       dlBtn.className = "asset-download-btn";
-      dlBtn.title     = `Download "${title || "asset"}" as HTML`;
-      dlBtn.innerHTML = `<i class="fa-solid fa-download" aria-hidden="true"></i>`;
+      const dlPrice   = m.creditPrice || 0;
+      const dlKey     = m.linkTrim || m.titleLC;
+      const dlLocked  = () => dlPrice > 0 && !window.WS_Credits?.hasPurchased(dlKey);
+      const paintDl   = () => {
+        const locked = dlLocked();
+        dlBtn.title = locked
+          ? `Download "${title || "asset"}" as HTML: ${dlPrice} credit${dlPrice === 1 ? "" : "s"}`
+          : `Download "${title || "asset"}" as HTML`;
+        dlBtn.innerHTML = `<i class="fa-solid fa-download" aria-hidden="true"></i>`
+          + (locked ? `<span class="asset-dl-price" style="margin-left:3px;font-size:10px;font-weight:bold;line-height:1;"><i class="fa-solid fa-coins" aria-hidden="true"></i> ${dlPrice}</span>` : "");
+      };
+      paintDl();
       dlBtn.style.cssText = "background:transparent!important;border:none!important;cursor:pointer;padding:2px 3px!important;font-size:14px!important;line-height:1!important;color:var(--trench-color,#000)!important;display:inline-flex!important;align-items:center!important;";
       dlBtn.addEventListener("click", async (e) => {
         e.preventDefault(); e.stopPropagation();
+
+        // Paid asset: ask once, charge once, then it's yours to re-download.
+        if (dlLocked()) {
+          const C = window.WS_Credits;
+          const bal = C ? C.balance() : 0;
+          if (!C || bal < dlPrice) {
+            const need = dlPrice - bal;
+            window.showToast?.(`🪙 "${title || "This asset"}" costs ${dlPrice} credits. You need ${need} more. Earn credits from achievements.`, 4200);
+            return;
+          }
+          const body = `downloading "${title || "this asset"}" costs ${dlPrice} credit${dlPrice === 1 ? "" : "s"} (you have ${bal}). you only pay once.`;
+          const ok = window.WSRuSure
+            ? await window.WSRuSure.ask({ title: "Spend credits?", body, cancel: "no take me back!", confirm: `yes, spend ${dlPrice}`, danger: false })
+            : window.confirm(body);
+          if (!ok) return;
+          const res = C.purchase(dlKey, dlPrice, title || "asset");
+          if (!res.ok) { window.showToast?.("🪙 Couldn't spend the credits. Try again.", 3000); return; }
+          paintDl();
+          window.showToast?.(`🪙 Spent ${dlPrice} credits`, 2200);
+        }
+
         try {
           const assetTitle = title    || "Untitled";
           const assetUrl   = link     || "";
@@ -2163,61 +2500,47 @@ window.addEventListener("load", () => {
     for (const card of orderCards(builtCards)) frag.appendChild(card);
     container.appendChild(frag);
     if (window.WS_Grid) window.WS_Grid.refresh();
+    _loadPlan.start(loadEntries);
 
-    if (!window._pageLoadState) window._pageLoadState = new Map();
+    // ── Build tracking ───────────────────────────────────────────────────
+    // A card is ready once its icon has settled (loaded, or given up on after
+    // the fallback tiers). The loaded state starts only when every card of
+    // every page is ready, then renderPage lets the pages through. Icons are
+    // already loading in parallel, so ready is marked the moment each one
+    // settles: the old per-card stagger only delayed this and was never seen
+    // (a page is only revealed once all of it is built).
+    let left = imagePromises.length;
 
-    const pagePromiseMap = new Map();
-    for (const { promise, page, card } of imagePromises) {
-      if (!pagePromiseMap.has(page)) pagePromiseMap.set(page, { promises: [], cards: [] });
-      pagePromiseMap.get(page).promises.push(promise);
-      pagePromiseMap.get(page).cards.push(card);
-    }
+    let renderQueued = false;
+    const queueRender = () => {
+      if (renderQueued) return;
+      renderQueued = true;
+      setTimeout(() => {
+        renderQueued = false;
+        if (buildId === _buildId && typeof window.renderPage === "function") window.renderPage();
+      }, 50);
+    };
 
-    for (const [pageNum, { promises, cards }] of pagePromiseMap) {
-      const isActive = pageNum === activePage;
-
-      let settled = 0;
-      const total = cards.length;
-      cards.forEach((card, i) => {
-        promises[i].finally(() => {
-          setTimeout(() => {
-            card.classList.add("ready");
-            settled++;
-            if (settled === total && typeof window.renderPage === "function") {
-              window.renderPage();
-            }
-          }, isActive ? i * 30 : i * 60);
-        });
-      });
-
-      const pageSettled = Promise.allSettled(promises).then(() => {
-        window._pageLoadState.set(pageNum, "loaded");
-
-        if (+window.currentPage === pageNum) {
-          if (isActive) {
-            runLoaderSequence();
-          } else {
-
-            _dismissPageLoader(pageNum);
-          }
-        }
-      });
-
-      if (!window._pageLoadState.has(pageNum)) {
-        window._pageLoadState.set(pageNum, pageSettled);
-      }
-
-      if (isActive) {
-        pageSettled.then(() => {});
-
-      }
-    }
-
-    if (!pagePromiseMap.has(activePage)) {
-      window._pageLoadState.set(activePage, "loaded");
-      runLoaderSequence();
+    const markAllBuilt = () => {
+      if (buildId !== _buildId || window._allPagesBuilt) return;
+      window._allPagesBuilt = true;
+      runLoaderSequence();   // first, so renderPage's loader guard sees the loaded gif already playing
       if (typeof window.renderPage === "function") window.renderPage();
+    };
+
+    for (const { promise, card } of imagePromises) {
+      const settled = () => {
+        if (buildId !== _buildId) return;
+        card.classList.add("ready");
+        left--;
+        _onBuildProgress();
+        if (left === 0) markAllBuilt();
+        else queueRender();
+      };
+      promise.then(settled, settled);
     }
+
+    if (left === 0) markAllBuilt();   // nothing to wait for (empty library)
 
     return imagePromises;
   }
@@ -2298,6 +2621,8 @@ window.addEventListener("load", () => {
     // Their sheet page is ignored, so the per-sheet-page loader gate below
     // doesn't apply; each card still waits for its own image ("ready").
     const renderFavPage = () => {
+      _releaseNavLoader();   // favorites don't use the per-sheet-page loader
+      _loadPlan.touch();
       const layout = getFavLayout();
       const pages  = favPageCount(layout) || 1;
       const cur    = Math.min(Math.max(1, +window.currentPage || 1), pages);
@@ -2352,8 +2677,11 @@ window.addEventListener("load", () => {
       }
 
       const cur = +window.currentPage;
-      const pageState = window._pageLoadState?.get(cur);
-      const pageFullyLoaded = pageState === "loaded";
+      _loadPlan.touch();   // page changed? re-rank which icons load next
+      const pageFullyLoaded = _pageIsBuilt(cur);
+      // Guard: a navigation loader never outlives its page being built, however
+      // the page was reached (arrows, filters, restore).
+      if (pageFullyLoaded) _releaseNavLoader();
       // Pageless: every page's cards at once. The current page still gates
       // the first paint, so nothing shows under the loader gif.
       const pageless = isPageless();
@@ -2415,6 +2743,8 @@ window.addEventListener("load", () => {
       spanningAll = !isPageless() && (
         isSearching ? (favViewOn() || p.searchScope === "global")
                     : (hasTags && !favViewOn() && p.filterScope === "global"));
+      window._spanningAll = spanningAll && !favViewOn();   // read by _loadPlan's lane
+      _loadPlan.touch();
 
       if (spanningAll) {
         const favLayout = favViewOn() ? getFavLayout() : null;
@@ -2477,6 +2807,7 @@ window.addEventListener("load", () => {
       if (!window._allCards.length) { paintPagingMode(); return; }
       indexCardPages(window._allCards);
       container.append(...orderCards(window._allCards));
+      _loadPlan.touch(true);   // the card→page mapping (or layout) just changed
       filterAssets(searchInput ? searchInput.value : "");
     });
 
@@ -2513,36 +2844,29 @@ window.addEventListener("load", () => {
     paintFavBtn(false);
 
     function _handlePageNavigation(pageNum) {
-      const pageState = window._pageLoadState?.get(pageNum);
-      if (pageState === "loaded" || pageState === undefined) {
+      if (!Number.isFinite(pageNum)) return;
 
-        return;
-      }
+      // Guard 1: a built page is shown as built, even if a different page is
+      // still loading. Flipping onto it clears the loader the unbuilt page put up.
+      if (_pageIsBuilt(pageNum)) { _releaseNavLoader(); return; }
 
-      const loader = document.getElementById("containerLoader");
+      // Guard 2: an unbuilt page gets the loader, and whatever was counting
+      // down on the previous page (a loaded gif, its finish timer) is cancelled
+      // so it can't take this loader down early.
+      _cancelLoaderSequence();
+      let loader = document.getElementById("containerLoader");
       if (!loader) {
-
-        const newLoader = document.createElement("div");
-        newLoader.id = "containerLoader";
-        const loaderImg = document.createElement("img");
-        loaderImg.alt = "";
-        applyGifToImg(loaderImg, _getTheme(), "loading");
-        newLoader.appendChild(loaderImg);
-        document.body.appendChild(newLoader);
-        window._loaderSequenceRunning = false;
-        document.body.classList.add("ws-loading");
-      } else {
-
-        const img = loader.querySelector("img");
-        if (img) applyGifToImg(img, _getTheme(), "loading");
-        window._loaderSequenceRunning = false;
-        document.body.classList.add("ws-loading");
-        loader.style.display = "";
+        loader = document.createElement("div");
+        loader.id = "containerLoader";
+        loader.dataset.kind = "nav";
+        document.body.appendChild(loader);
       }
-
-      Promise.resolve(pageState).then(() => {
-        _dismissPageLoader(pageNum);
-      });
+      const img = loader.querySelector("img") || loader.appendChild(document.createElement("img"));
+      img.alt = "";
+      applyGifToImg(img, _getTheme(), "loading");
+      loader.style.display = "";
+      document.body.classList.add("ws-loading");
+      // It ends via _onBuildProgress (this page built) or markAllBuilt.
     }
 
     searchInput?.addEventListener("input", debounce(() => filterAssets(searchInput.value), 200));
@@ -2822,10 +3146,19 @@ window.addEventListener("load", () => {
   function _recheckTicket() {
     const T = window.WS_Ticket;
     if (!T?.check) return;
-    T.check().then((st) => {
+    // "unknown"/"missing" erases the saved ticket, so it has to be said
+    // twice, a few seconds apart, before it's believed; one odd reply from
+    // the server must never log someone out.
+    const act = (st) => { window.WS_DataCache?.clear(); T.revoke(st); };
+    T.check().then(async (st) => {
       if (st === "approved") return;
-      window.WS_DataCache?.clear();
-      T.revoke(st);
+      if (st === "unknown" || st === "missing") {
+        await new Promise((r) => setTimeout(r, 4000));
+        const again = await T.check();
+        if (again === "approved") return;
+        return act(again);
+      }
+      act(st);
     }).catch(() => {});
   }
 
@@ -2903,7 +3236,21 @@ window.addEventListener("load", () => {
 
     const promises = createAssetCards(data);
 
-    const activePromises = promises.filter(p => p.page === savedPage).map(p => p.promise);
+    // Guard: the saved page may not exist any more (the sheet was reshuffled).
+    const viewPages   = [...window._cardIndex.keys()].sort((a, b) => a - b);
+    const restorePage = viewPages.includes(savedPage) ? savedPage : (viewPages[0] ?? savedPage);
+    if (restorePage !== savedPage) {
+      window.currentPage = restorePage;
+      sessionStorage.setItem("currentPage", String(restorePage));
+      if (earlyIndicator) earlyIndicator.textContent = `Page ${restorePage}`;
+    }
+
+    // What must be laid out before the saved scroll position means anything:
+    // pageless stacks every page in one column, so all of it; paged only the
+    // page being restored, by the page each card shows on (the view page,
+    // which differs from the sheet page under A–Z across pages).
+    const stacked        = window.WS_Paging?.effective?.().layout === "pageless";
+    const activePromises = promises.filter(p => stacked || p.card._viewPage === restorePage).map(p => p.promise);
     const settle         = activePromises.length ? Promise.all(activePromises) : Promise.resolve();
     settle.finally(() => {
       if (typeof window._restoreScrollY === "function") window._restoreScrollY();
@@ -2929,20 +3276,23 @@ window.addEventListener("load", () => {
 
     window._cardIndex = new Map();
     window._allCards  = [];
-    window._pageLoadState = new Map();
+    // Invalidate the old build first, so its still-loading icons can't end the new loader.
+    _buildId++;
+    window._allPagesBuilt = false;
+    _cancelLoaderSequence();
 
     document.body.classList.add("ws-loading");
 
     document.getElementById("containerLoader")?.remove();
     const loader = document.createElement("div");
     loader.id = "containerLoader";
+    loader.dataset.kind = "boot";
 
     const loaderImg = document.createElement("img");
     loaderImg.alt = "";
     applyGifToImg(loaderImg, _getTheme(), "loading");
     loader.appendChild(loaderImg);
     document.body.appendChild(loader);
-    window._loaderSequenceRunning = false;
 
     window._sheetDataReady = Promise.resolve();
     _resolveSheetData = () => {};

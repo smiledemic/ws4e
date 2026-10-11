@@ -55,6 +55,9 @@
   const read = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
 
   function get() {
+    // debug.html edits the sheet's own page/row order, so it always shows that
+    // order (paged, sheet order), whatever this browser's Settings say.
+    if (window.__WS_DEBUG) return { layout: "paged", order: "sheet", alphaScope: "global", filterScope: "local", searchScope: "global", flipAlign: false, cache: false };
     const out = {};
     for (const [name, allowed] of Object.entries(ALLOWED)) {
       const v = read(KEYS[name]);

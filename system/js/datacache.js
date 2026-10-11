@@ -32,7 +32,7 @@
   const canCompress = typeof CompressionStream === "function" && typeof DecompressionStream === "function";
 
   const get = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
-  const enabled = () => get(ON_KEY) === "1";
+  const enabled = () => !window.__WS_DEBUG && get(ON_KEY) === "1";   // debug.html always reads the live sheet
 
   // ── Packing: rows of objects ⇄ columns + value arrays ────────────────
   const isRowList = (d) => Array.isArray(d) && d.length > 0 &&

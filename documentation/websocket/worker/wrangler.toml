@@ -1,0 +1,14 @@
+name = "wannachat-ws"
+main = "index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+DATA_URL = "https://script.google.com/macros/s/AKfycbynx8CkmFWlABjxirOD6-WqQ1wQj5R8H0rglFYJR95AIrONEMnM9QCB2gLXxJy63PGV/exec"
+
+[[durable_objects.bindings]]
+name = "INBOX"
+class_name = "Inbox"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Inbox"]

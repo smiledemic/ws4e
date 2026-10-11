@@ -16,9 +16,12 @@
 // can read window.WS_ENDPOINTS.
 //
 window.WS_ENDPOINTS = Object.freeze({
-  data: "https://script.google.com/macros/s/AKfycbxG3GniyjGks4y1uByIqzQlQJ_og6fjmBPumjiVr4nVLt6J8bwd4EJrJZbn8Jvax3dK/exec",
+  data: "https://script.google.com/macros/s/AKfycbynx8CkmFWlABjxirOD6-WqQ1wQj5R8H0rglFYJR95AIrONEMnM9QCB2gLXxJy63PGV/exec",
   cust: "https://script.google.com/macros/s/AKfycbztiWN2Xfkot_i5keu7o3Sm5z9sbXyTvDwIz9Yd23d-pg_Gl6ckIJrI71RV_K6jPIaM/exec",
   mod:  "https://script.google.com/macros/s/AKfycbyorR1RSI3-aYv91IIobUxMmNv8HKMyYvNKhwgR27AXetGROjkE_eYgBNyW5hwyPh_w/exec",
+  // Your Cloudflare Worker HTML-fetch endpoint used by "qwerty" assets.
+  // This fetches the initial HTML document only; it is not a WebSocket relay.
+  fetch: "https://ankom-url-api.ankomstudios.workers.dev/fetch?url=",
 });
 
 // ── General media (mediabaseWS) ────────────────────────────────────────

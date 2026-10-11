@@ -359,3 +359,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   overlay?.addEventListener("click", (e) => { if (e.target === overlay) hideOverlay(); });
 });
+
+// DM button (last header icon): opens WannaChat in a new tab, like the nav links.
+document.getElementById("openDm")?.addEventListener("click", () => {
+  window.open("system/pages/chat/index.html", "_blank");
+});

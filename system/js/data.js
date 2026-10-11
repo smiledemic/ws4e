@@ -26,7 +26,8 @@
     "_realTitle", "_realFavicon",
     "ws_selected_widgets", "ws_active_widget", "ws_widgets_hidden",
     "ws_selected_themes",
-    "ws_selected_gifpacks", "ws_active_gifpack",
+    "ws_selected_gifpacks", "ws_active_gifpack", "ws_custom_gifpacks",   // ws_custom_gifpacks: your own gif packs (themify.js)
+    "ws_cursors_enabled", "ws_active_cursor", "ws_cursor_size",   // custom cursors (cursors.js)
     "ws_qr_cache",   // last good QRWS URL list (refer.js)
     // Paging settings (paging.js, the Settings page)
     "ws_paging_layout", "sortMode", "ws_alpha_scope", "ws_filter_scope", "ws_search_scope", "ws_flip_align", "ws_data_cache_on", "ws_bundle_tilt", "ws_bundle_hide",
@@ -278,7 +279,8 @@
     "_realTitle", "_realFavicon",
     "ws_selected_widgets", "ws_active_widget", "ws_widgets_hidden", "ws_widget_cache",
     "ws_selected_themes", "ws_theme_cache",
-    "ws_selected_gifpacks", "ws_active_gifpack",
+    "ws_selected_gifpacks", "ws_active_gifpack", "ws_custom_gifpacks",   // ws_custom_gifpacks: your own gif packs (themify.js)
+    "ws_cursors_enabled", "ws_active_cursor", "ws_cursor_size",   // custom cursors (cursors.js)
     // Paging settings (paging.js, the Settings page)
     "ws_paging_layout", "sortMode", "ws_alpha_scope", "ws_filter_scope", "ws_search_scope", "ws_flip_align", "ws_data_cache_on", "ws_bundle_tilt", "ws_bundle_hide",
     // Credits & achievements (ws_credits, ws_credit_log, ws_achievements,

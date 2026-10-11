@@ -886,21 +886,46 @@ window.addEventListener("DOMContentLoaded", () => {
     reader.readAsDataURL(file);
   });
 
+  // Cropper (its script and stylesheet) is only needed once somebody crops
+  // something, so it's fetched on first use instead of with every page load.
+  // Resolves true when `Cropper` is usable, false if the CDN can't be reached.
+  let _cropperLoad = null;
+  const loadCropper = () => {
+    if (typeof Cropper !== "undefined") return Promise.resolve(true);
+    if (_cropperLoad) return _cropperLoad;
+    _cropperLoad = new Promise((resolve) => {
+      const base = "https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.";
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = base + "css";
+      document.head.appendChild(css);
+      const js = document.createElement("script");
+      js.src = base + "js";
+      js.onload  = () => resolve(typeof Cropper !== "undefined");
+      js.onerror = () => { _cropperLoad = null; js.remove(); resolve(false); };
+      document.head.appendChild(js);
+    });
+    return _cropperLoad;
+  };
+
   // Opens the 4:1 cropper on any banner: an upload or a gallery one. A GIF
   // comes out as a still (that's what cropping does to it).
   startBannerCrop = (src) => {
-    if (!bannerCropImg || typeof Cropper === "undefined") return;
-    libraryEl("banner").hidden = false;
-    showBannerCrop(true);
-    if (bannerCropper) bannerCropper.destroy();
-    bannerCropImg.src = src;
-    bannerCropper = new Cropper(bannerCropImg, {
-      aspectRatio: BANNER_W / BANNER_H, viewMode: 1, autoCropArea: 1,
-      background: false, dragMode: "move", checkCrossOrigin: true,
+    if (!bannerCropImg) return;
+    loadCropper().then((ok) => {
+      if (!ok) return;
+      libraryEl("banner").hidden = false;
+      showBannerCrop(true);
+      if (bannerCropper) bannerCropper.destroy();
+      bannerCropImg.src = src;
+      bannerCropper = new Cropper(bannerCropImg, {
+        aspectRatio: BANNER_W / BANNER_H, viewMode: 1, autoCropArea: 1,
+        background: false, dragMode: "move", checkCrossOrigin: true,
+      });
+      if (/\.gif($|\?)/i.test(src) && typeof showToast === "function") {
+        showToast("Heads up: a cropped GIF banner becomes a still image.");
+      }
     });
-    if (/\.gif($|\?)/i.test(src) && typeof showToast === "function") {
-      showToast("Heads up: a cropped GIF banner becomes a still image.");
-    }
   };
 
   $id("bannerCropConfirm")?.addEventListener("click", () => {
@@ -927,13 +952,16 @@ window.addEventListener("DOMContentLoaded", () => {
   // the library's own (a URL; Cropper loads it with CORS so it can be
   // cut out — if a host refuses, the crop falls back to using it as-is).
   startPicCrop = (src) => {
-    if (!cropPreviewImg || typeof Cropper === "undefined") { setPending("pic", src); return; }
-    libraryEl("pfp").hidden = false;
-    showCrop(true);
-    if (cropper) cropper.destroy();
-    cropPreviewImg.src = src;
-    cropper = new Cropper(cropPreviewImg, { aspectRatio: 1, viewMode: 1, background: false, dragMode: "move", checkCrossOrigin: true });
-    cropper.__src = src;
+    if (!cropPreviewImg) { setPending("pic", src); return; }
+    loadCropper().then((ok) => {
+      if (!ok) { setPending("pic", src); return; }
+      libraryEl("pfp").hidden = false;
+      showCrop(true);
+      if (cropper) cropper.destroy();
+      cropPreviewImg.src = src;
+      cropper = new Cropper(cropPreviewImg, { aspectRatio: 1, viewMode: 1, background: false, dragMode: "move", checkCrossOrigin: true });
+      cropper.__src = src;
+    });
   };
 
   fileInput?.addEventListener("change", (e) => {

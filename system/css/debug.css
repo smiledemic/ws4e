@@ -1,0 +1,139 @@
+/* Debug layout editor (debug.html + system/js/debug-editor.js).
+   Only loaded by the debug page; index never sees it. Colors follow the
+   active theme through --accent-color, same as the rest of the site. */
+
+/* Room for the fixed bar below. It goes inside the footer, not on the body:
+   padding on the body left a gap under the footer, so its background stopped
+   short of the bottom of the page (index has no such gap). The footer is a
+   flex row with align-items:center, so its links stay in the original strip
+   above the extra space and the bar never covers them. */
+body.dbg-page .footer { padding-bottom: 96px; }
+
+/* ── Edit mode: the whole block is the handle ─────────────────────── */
+body.dbg-edit #container .asset-card {
+  cursor: grab;
+  touch-action: none;              /* touch drags the block instead of scrolling */
+  -webkit-user-select: none;
+  user-select: none;
+}
+body.dbg-edit #container .asset-card * { pointer-events: none !important; }   /* links and buttons can't steal the grab */
+body.dbg-edit #container .asset-card:hover {
+  outline: 2px dashed var(--accent-color, #ff4d6d);
+  outline-offset: 4px;
+}
+body.dbg-active, body.dbg-active * { cursor: grabbing !important; }
+
+/* Fix and Soon blocks are dead on the real site: main.css gives them
+   pointer-events:none, so a press goes straight through to the page behind
+   and the editor never sees it. In edit mode they're grabbable like any
+   other block (with edit mode off they behave as on the real site). The
+   block being carried keeps pointer-events:none from its own rule below. */
+body.dbg-edit #container .asset-card:is(.fix, .soon):not(.dbg-dragging) {
+  pointer-events: auto !important;
+}
+
+/* The block being carried */
+#container .asset-card.dbg-dragging {
+  position: fixed !important;
+  z-index: 10050;
+  margin: 0 !important;
+  pointer-events: none !important;
+  outline: none !important;
+  transform: scale(1.06) rotate(1.5deg);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  transition: none !important;
+}
+
+/* Where it will lock in */
+#container .dbg-slot {
+  width: 100%;
+  max-width: var(--asset-card-size, 220px);
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 20px;
+  border: 2px dashed var(--accent-color, #ff4d6d);
+  background: color-mix(in srgb, var(--accent-color, #ff4d6d) 14%, transparent);
+  animation: dbgPulse 0.9s ease-in-out infinite alternate;
+}
+@keyframes dbgPulse { to { background: color-mix(in srgb, var(--accent-color, #ff4d6d) 28%, transparent); } }
+
+/* Left / right page-flip zones: fill up over 0.3s, then 0.6s per extra flip */
+.dbg-edge {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  z-index: 10040;
+  pointer-events: none;
+  opacity: 0;
+  display: grid;
+  place-items: center;
+  font: 700 28px monospace;
+  color: #fff;
+  transition: opacity 0.15s ease;
+}
+#dbgEdgeL { left: 0;  background: linear-gradient(to right, rgba(0, 0, 0, 0.55), transparent); }
+#dbgEdgeR { right: 0; background: linear-gradient(to left,  rgba(0, 0, 0, 0.55), transparent); }
+#dbgEdgeL::before { content: "‹"; }
+#dbgEdgeR::before { content: "›"; }
+.dbg-edge::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: calc(var(--p, 0) * 100%);
+  background: var(--accent-color, #ff4d6d);
+}
+#dbgEdgeL::after { left: 0; }
+#dbgEdgeR::after { right: 0; }
+body.dbg-active .dbg-edge { opacity: 0.45; }
+body.dbg-active .dbg-edge.on { opacity: 1; }
+
+/* ── Overlay bar ──────────────────────────────────────────────────── */
+#dbgBar {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 10060;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 10px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--accent-color, #ff4d6d);
+  background: rgba(12, 12, 16, 0.88);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font: 13px monospace;
+}
+#dbgBar .dbg-tag { font-weight: 700; color: var(--accent-color, #ff4d6d); }
+#dbgBar .dbg-switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+#dbgBar .dbg-switch input { accent-color: var(--accent-color, #ff4d6d); }
+#dbgBar .overlay-btn { padding: 6px 12px; font-size: 13px; }
+#dbgStatus { min-width: 130px; text-align: center; opacity: 0.8; }
+#dbgStatus.dirty { opacity: 1; color: var(--accent-color, #ff4d6d); }
+#dbgKey {
+  width: 130px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font: inherit;
+}
+#dbgKey:focus { outline: 2px solid var(--accent-color, #ff4d6d); outline-offset: 1px; }
+
+@media (max-width: 560px) {
+  #dbgBar { bottom: 8px; padding: 8px 10px; }
+  #dbgKey { width: 100px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #container .dbg-slot { animation: none; }
+  .dbg-edge { transition: none; }
+}

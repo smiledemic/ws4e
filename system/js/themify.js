@@ -326,6 +326,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === "ws_active_gifpack" && typeof window.applyThemeGifs === "function") {
     window.applyThemeGifs(document.documentElement.getAttribute("theme"));
   }
+  if (e.key === CUSTOM_GIF_KEY || e.key === null) _refreshCustomGifPacks();
 
   if (e.key === "customTheme" && e.newValue) {
     try { _applyCustomVars(JSON.parse(e.newValue)); } catch (_) {}
@@ -359,6 +360,42 @@ const GIF_PACK_SELECTION_KEY = "ws_selected_gifpacks"; // set by store.html: cyc
 const DEFAULT_GIF_PACK       = "redux";
 const GIF_STATE_KEYS         = ["loading", "loaded", "searching", "held", "drop", "crash", "ded"];
 
+// ── Your own gif packs (made in the store's gif pack editor) ───────────
+// Kept in this browser only, never sent anywhere:
+//   ws_custom_gifpacks  { [id]: { id, name, states: { [state]: { src, width, height, pixelated } } } }
+// `src` is the gif itself as a data: URL, so a pack works offline and
+// travels in the data file. Ids always start with "my-" so they can't
+// collide with a pack from the sheet. A state left empty falls back to the
+// default pack's gif (see getThemeGif). The editor only offers these five:
+const CUSTOM_GIF_KEY       = "ws_custom_gifpacks";
+const CUSTOM_GIF_PREFIX    = "my-";
+const CUSTOM_GIF_STATES    = ["loading", "loaded", "ded", "crash", "searching"];
+
+function _readCustomGifPacks() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(CUSTOM_GIF_KEY) || "{}"); } catch (_) { raw = {}; }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [id, p] of Object.entries(raw)) {
+    if (!p || typeof p !== "object" || !id.startsWith(CUSTOM_GIF_PREFIX)) continue;
+    const states = {};
+    for (const key of CUSTOM_GIF_STATES) {
+      const s = p.states && p.states[key];
+      // Only gifs we stored ourselves: a data: image, never a remote URL.
+      if (s && typeof s.src === "string" && /^data:image\/gif;base64,/i.test(s.src)) {
+        states[key] = {
+          src: s.src,
+          width: Math.max(1, parseInt(s.width, 10) || DEFAULT_GIF_SIZE),
+          height: Math.max(1, parseInt(s.height, 10) || DEFAULT_GIF_SIZE),
+          pixelated: s.pixelated === true,
+        };
+      }
+    }
+    out[id] = { id, name: String(p.name || id).slice(0, 40), states, custom: true };
+  }
+  return out;
+}
+
 // Same instant-paint idea as the theme cache above: seeded synchronously from
 // whatever was cached last session, so the loader gif renders in the correct
 // pack immediately instead of always flashing redux while the live fetch is
@@ -379,10 +416,13 @@ function _cacheGifPacks(packs, ids) {
   try { localStorage.setItem(GIF_PACK_CACHE_KEY, JSON.stringify(next)); } catch (_) {}
 }
 
-let _gifPacks = _getGifPackCache(); // { [id]: {id,name,states} } — cache until the live fetch replaces it
+let _gifPacks = { ..._getGifPackCache(), ..._readCustomGifPacks() }; // { [id]: {id,name,states} } — cache until the live fetch replaces it
 
+// "Known" means we've heard from the sheet (live or cached). The user's own
+// packs don't count, or an active sheet pack would be reset to the default
+// until the sheet answered.
 function _gifPacksKnown() {
-  return Object.keys(_gifPacks).length > 0;
+  return Object.values(_gifPacks).some((p) => !p.custom);
 }
 
 function _parseGifPackRow(row) {
@@ -421,7 +461,7 @@ function _loadGifPacks() {
         const pack = _parseGifPackRow(row);
         if (pack) map[pack.id] = pack;
       });
-      _gifPacks = map;
+      _gifPacks = { ...map, ..._readCustomGifPacks() };
 
       // Keep the local cache warm for whatever's actually in play: the active
       // pack (so next load can paint it instantly, see the bootstrap IIFE
@@ -461,11 +501,81 @@ function setActiveGifPack(id) {
   return true;
 }
 
+// Re-reads the user's own packs after the editor changed them (or another
+// tab did), and repaints whatever gif is on screen.
+function _refreshCustomGifPacks() {
+  const next = {};
+  for (const [id, p] of Object.entries(_gifPacks)) if (!p.custom) next[id] = p;
+  _gifPacks = { ...next, ..._readCustomGifPacks() };
+  if (typeof window.applyThemeGifs === "function") {
+    window.applyThemeGifs(document.documentElement.getAttribute("theme"));
+  }
+  document.dispatchEvent(new CustomEvent("ws:gifpacks-changed"));
+}
+
+// Creates or updates one of the user's packs. `states` is
+// { loading: { src: "data:image/gif;base64,…", width, height }, … } and any
+// state may be left out. Returns { ok, id } or { ok:false, error } (the
+// browser's storage being full is the one error worth telling the user).
+function saveCustomGifPack({ id, name, states, pixelated }) {
+  const all = _readCustomGifPacks();
+  const cleanName = String(name || "").trim().slice(0, 24);
+  if (!cleanName) return { ok: false, error: "Give your pack a name." };
+
+  let key = String(id || "").trim().toLowerCase();
+  if (!key || !all[key]) {
+    if (Object.keys(all).length >= 10) return { ok: false, error: "That's the limit: 10 packs of your own. Delete one to make room." };
+    const slug = cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 16) || "pack";
+    do { key = `${CUSTOM_GIF_PREFIX}${slug}-${Math.random().toString(36).slice(2, 6)}`; } while (all[key] || _gifPacks[key]);
+  }
+
+  const clean = {};
+  for (const state of CUSTOM_GIF_STATES) {
+    const s = states && states[state];
+    if (!s || !/^data:image\/gif;base64,/i.test(String(s.src || ""))) continue;
+    clean[state] = { src: s.src, width: s.width, height: s.height, pixelated: pixelated === true };
+  }
+  if (!Object.keys(clean).length) return { ok: false, error: "Add at least one gif." };
+
+  all[key] = { id: key, name: cleanName, states: clean };
+  try {
+    localStorage.setItem(CUSTOM_GIF_KEY, JSON.stringify(all));
+  } catch (_) {
+    return { ok: false, error: "This browser's storage is full. Try smaller gifs, or delete a pack you don't use." };
+  }
+  _refreshCustomGifPacks();
+  return { ok: true, id: key };
+}
+
+function deleteCustomGifPack(id) {
+  const key = String(id || "").trim().toLowerCase();
+  const all = _readCustomGifPacks();
+  if (!all[key]) return false;
+  delete all[key];
+  try { localStorage.setItem(CUSTOM_GIF_KEY, JSON.stringify(all)); } catch (_) { return false; }
+
+  // It can't stay active or in the [ / ] cycle once it's gone.
+  try {
+    if ((localStorage.getItem(GIF_PACK_ACTIVE_KEY) || "").trim().toLowerCase() === key) localStorage.removeItem(GIF_PACK_ACTIVE_KEY);
+    const sel = JSON.parse(localStorage.getItem(GIF_PACK_SELECTION_KEY) || "[]");
+    if (Array.isArray(sel) && sel.includes(key)) localStorage.setItem(GIF_PACK_SELECTION_KEY, JSON.stringify(sel.filter((x) => x !== key)));
+  } catch (_) {}
+  _refreshCustomGifPacks();
+  return true;
+}
+
 window.GifPacks = {
   list: () => Object.values(_gifPacks || {}).map(p => ({ id: p.id, name: p.name })),
   getActive: getActiveGifPack,
   getName: (id) => (_gifPacks || {})[(id || "").trim().toLowerCase()]?.name || id,
   setActive: setActiveGifPack,
+  // The user's own packs (store → gif pack editor)
+  customStates: CUSTOM_GIF_STATES,
+  customList: () => Object.values(_readCustomGifPacks()),
+  getCustom: (id) => _readCustomGifPacks()[(id || "").trim().toLowerCase()] || null,
+  isCustom: (id) => String(id || "").trim().toLowerCase().startsWith(CUSTOM_GIF_PREFIX),
+  saveCustom: saveCustomGifPack,
+  deleteCustom: deleteCustomGifPack,
 };
 
 // `theme` is kept as a parameter purely so every existing call site (both in

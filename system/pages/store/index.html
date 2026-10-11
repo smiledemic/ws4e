@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link id="favicon" rel="icon" href="../../../assets/favicons/favicon.png" />
-<title>WannaSmile4Evr | Store</title>
+<title>Store · WannaSmile4Evr</title>
 
 <link rel="preconnect" href="https://script.google.com" crossorigin />
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
@@ -257,6 +257,10 @@ kbd {
 /* Pixel-art packs are tiny; blow them up crisply to fill the box. */
 .gifbox img.pixelated { image-rendering: pixelated; height: 84px; width: auto; }
 .gifbox .none { font-size: 2rem; opacity: 0.5; }
+/* "Your gif packs": the pack editor's button row above your own packs. */
+.subhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 22px 0 12px; }
+.subhead h3 { font-size: 1rem; }
+.subhead .btn { flex: none; }
 
 /* Frame preview: the frame drawn over the visitor's own picture, exactly as
    the profile card does (frame above the picture, scaled up and centred). */
@@ -432,6 +436,12 @@ kbd {
     </div>
     <p class="tip">Gif packs are the loading, searching and crash animations. They're separate from themes, so mix and match freely. Add as many as you like to the cycle and press <kbd>[</kbd> / <kbd>]</kbd> on the main site to swap between them. <b>Activate</b> puts one in use right now. Hover a card to see it search.</p>
     <div class="grid" id="gifpackGrid"></div>
+    <div class="subhead">
+      <h3>🛠️ Your gif packs</h3>
+      <button type="button" class="btn" id="newGifpackBtn">＋ Create gif pack</button>
+    </div>
+    <p class="tip">Make your own: drop a gif for loading, loaded, ded, crash and search. They're saved only in this browser, and work like any other pack (activate them, add them to the <kbd>[</kbd> / <kbd>]</kbd> cycle).</p>
+    <div class="grid" id="myGifpackGrid"></div>
   </section>
 
   <section class="panel" id="frames" aria-labelledby="framesTitle">
@@ -469,6 +479,7 @@ kbd {
 <script src="../../js/frames.js"></script>
 <script src="../../js/wrappers.js"></script>
 <script src="../../js/cursors.js"></script>
+<script src="../../js/gifeditor.js"></script>
 <script>
 "use strict";
 // ── Store ──────────────────────────────────────────────────────────────
@@ -481,6 +492,7 @@ kbd {
 //   ws_theme_cache        { id: row } for instant paint   -> themify.js
 //   ws_selected_gifpacks  gif pack cycle order ([ / ])    -> ui.js
 //   ws_active_gifpack     the active gif pack             -> themify.js
+//   ws_custom_gifpacks    your own gif packs (editor)     -> themify.js
 //   pfpFrame              the equipped picture frame URL  -> profile.js / frames.js
 //   pfpWrapper            the equipped card wrapper URL   -> profile.js / wrappers.js
 //   ws_cursors_enabled    custom cursors on ("true")      -> cursors.js
@@ -747,11 +759,12 @@ kbd {
   // Every pack lives at mediabaseWS gif-packs/<id>/<state>.gif.
   const GIF_BASE = "https://raw.githubusercontent.com/wannasmile4evr/mediabaseWS/main/gif-packs/";
   const gifCards = [];
+  const myGifCards = [];   // the user's own packs (gif pack editor)
 
   function paintGifPacks() {
     const sel = readList(GIF_SEL_KEY);
     const active = (localStorage.getItem(GIF_ACTIVE) || DEFAULT_ID).trim().toLowerCase();
-    gifCards.forEach(({ id, card, tag, pickBtn, activeBtn }) => {
+    [...gifCards, ...myGifCards].forEach(({ id, card, tag, pickBtn, activeBtn }) => {
       const on = sel.includes(id), isActive = active === id;
       setBtn(pickBtn, on, "✓ Cycling", "+ Cycle");
       setBtn(activeBtn, isActive, "★ Active", "Activate");
@@ -819,6 +832,80 @@ kbd {
     });
     paintGifPacks();
   }
+
+  // ── Your own gif packs ───────────────────────────────────────────────
+  // Made in the gif pack editor (gifeditor.js) and kept in this browser only
+  // (themify.js, ws_custom_gifpacks). They live apart from the sheet's packs
+  // above, so they show up even when the sheet can't be reached.
+  function renderMyGifPacks() {
+    const grid = $("myGifpackGrid");
+    const packs = window.GifPacks?.customList?.() || [];
+    grid.replaceChildren();
+    myGifCards.length = 0;
+    if (!packs.length) {
+      message(grid, "No packs of your own yet. Press \"＋ Create gif pack\" to make one.");
+      return;
+    }
+    packs.forEach((pack, i) => {
+      const { id, name, states } = pack;
+      const card = makeCard(i);
+      card.innerHTML = `
+        <span class="tag">Active</span>
+        <span class="tag alt">Yours</span>
+        <div class="gifbox"><img alt="" decoding="async" /></div>
+        <div class="item-name"></div>
+        <div class="btns"></div>`;
+      card.querySelector(".item-name").textContent = name;
+
+      const img = card.querySelector(".gifbox img");
+      const first = states.loading || Object.values(states)[0];
+      const show = (s) => {
+        if (!s) return;
+        img.classList.toggle("pixelated", s.pixelated === true);
+        img.src = s.src;
+      };
+      img.alt = `${name} preview`;
+      show(first);
+      if (states.searching && states.searching !== first) {
+        card.addEventListener("mouseenter", () => show(states.searching));
+        card.addEventListener("mouseleave", () => show(first));
+      }
+
+      const pickBtn = makeBtn("");
+      const activeBtn = makeBtn("");
+      const editBtn = makeBtn("✎ Edit");
+      pickBtn.addEventListener("click", () => {
+        const sel = readList(GIF_SEL_KEY);
+        const at = sel.indexOf(id);
+        if (at === -1) sel.push(id); else sel.splice(at, 1);
+        writeList(GIF_SEL_KEY, sel);
+        paintGifPacks(); updateCounts();
+        toast(at === -1 ? `🌀 ${name} added to your cycle` : `${name} left your cycle`);
+      });
+      activeBtn.addEventListener("click", () => {
+        // GifPacks.setActive also repaints this page's own loader gifs.
+        if (window.GifPacks?.setActive) window.GifPacks.setActive(id);
+        else { try { localStorage.setItem(GIF_ACTIVE, id); } catch {} }
+        paintGifPacks();
+        toast(`🌀 ${name} is now your gif pack`);
+      });
+      editBtn.addEventListener("click", () => openGifEditor(id));
+      card.querySelector(".btns").append(pickBtn, activeBtn, editBtn);
+      myGifCards.push({ id, card, tag: card.querySelector(".tag:not(.alt)"), pickBtn, activeBtn });
+      grid.appendChild(card);
+    });
+    paintGifPacks();
+  }
+
+  async function openGifEditor(id) {
+    if (!window.WSGifEditor) return toast("The gif pack editor didn't load. Try refreshing.");
+    const result = await window.WSGifEditor.open(id ? { id } : {});
+    if (!result) return;
+    toast(String(result).startsWith("deleted:") ? "🗑️ Gif pack deleted" : id ? "🌀 Gif pack saved" : "🌀 Gif pack created");
+  }
+  $("newGifpackBtn").addEventListener("click", () => openGifEditor());
+  // Saving, deleting, or a change in another tab (themify.js fires this).
+  document.addEventListener("ws:gifpacks-changed", () => { renderMyGifPacks(); updateCounts(); });
 
   // ── Frames ───────────────────────────────────────────────────────────
   // FramesWS (?type=frames) via frames.js; art at mediabaseWS frames/<id>/splash.png.
@@ -1050,6 +1137,7 @@ kbd {
     });
   }
   renderCursors();
+  renderMyGifPacks();
   updateCounts();
 
   // Highlight the tab for the section in view.
