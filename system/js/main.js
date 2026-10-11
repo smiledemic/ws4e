@@ -1132,88 +1132,92 @@ window.addEventListener("load", () => {
       rows.push(row);
     }
     _linkIndex = linkIndex;
+    // Runs after this tick so REALMZ_TYPE_TOKEN (declared further down) is initialised.
+    setTimeout(() => {
+      if (rows.some((r) => _assetMeta.get(r)?.typeSet?.has(REALMZ_TYPE_TOKEN))) _scheduleWispPreload();
+    }, 0);
     return rows;
   }
 
   // A sheet row flagged with this type (stacked in the "type" column
   // alongside/instead of others — see _parseStack) opens its own "link"
-  // cell — the sheet stays the source of truth — through openViaWorker below
+  // cell — the sheet stays the source of truth — through openViaWisp below
   // instead of navigating the new tab straight to that URL. "qwerty" is just
-  // a placeholder while this is being tested from the sheet. It may sit in
-  // either the type or the status column (see _MOVE_TO_TYPE).
+  // a placeholder while this is being tested from the sheet.
   const REALMZ_TYPE_TOKEN = "qwerty";
 
-  // ── Cloudflare Worker HTML opener ────────────────────────────────────
-  // qwerty accepts any well-formed absolute HTTP(S) URL; there is no
-  // hard-coded hostname allowlist in the frontend. The Worker must still
-  // enforce server-side URL/redirect checks and block private/internal hosts.
-  // This fetches the initial HTML document only; it is not a general
-  // asset or WebSocket relay.
-  const FETCH_API = window.WS_ENDPOINTS?.fetch ||
-    "https://ankom-url-api.ankomstudios.workers.dev/fetch?url=";
-  const FETCH_TIMEOUT = 25000;
-  const FETCH_MAX_REDIRECTS = 5;
-  const FETCH_SANDBOX = "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox " +
-                        "allow-modals allow-pointer-lock allow-downloads allow-presentation";
+  // ── Wisp opener ──────────────────────────────────────────────────────
+  // The page is fetched over HTTPS through a Wisp websocket server
+  // (libcurl.js does the TLS in the browser, so the server only relays
+  // encrypted bytes), then shown in an about:blank tab. The tab's title and
+  // favicon come from the sheet row, and the fetched page lives in a
+  // sandboxed iframe so it can't read this site's localStorage.
+  //
+  // Limits: only the HTML document itself travels through Wisp. Its
+  // scripts/images/etc. are still requested directly by the browser, and
+  // because the frame is sandboxed (no same-origin), a page that insists on
+  // its own cookies/localStorage or CORS-protected fetches may not work.
+  const WISP_URL     = window.WS_ENDPOINTS?.wisp || "wss://wisp.mercurywork.shop/";
+  const LIBCURL_SRC  = "https://cdn.jsdelivr.net/npm/libcurl.js@0.7.1/libcurl_full.js";
+  const WISP_TIMEOUT = 25000;
+  const WISP_SANDBOX = "allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox " +
+                       "allow-modals allow-pointer-lock allow-downloads allow-presentation";
 
-  function normalizeFetchURL(value) {
-    try {
-      const u = new URL(String(value).trim());
-      if ((u.protocol !== "https:" && u.protocol !== "http:") ||
-          !u.hostname || u.username || u.password) return null;
-      return u.href;
-    } catch (_) { return null; }
+  let _libcurlPromise = null;
+
+  // Loads libcurl.js once (script tag injected on demand) and points it at
+  // the Wisp server. A failed load clears the cache so the next click retries.
+  function loadLibcurl() {
+    if (_libcurlPromise) return _libcurlPromise;
+    _libcurlPromise = new Promise((resolve, reject) => {
+      let settled = false, poll = 0, timer = 0;
+      const isReady = () => !!(window.libcurl && window.libcurl.ready === true);
+      const onReady = () => settle();
+      function settle(err) {
+        if (settled) return;
+        settled = true;
+        clearInterval(poll);
+        clearTimeout(timer);
+        document.removeEventListener("libcurl_load", onReady);
+        if (err) { _libcurlPromise = null; reject(err); return; }
+        try { window.libcurl.set_websocket(WISP_URL); }
+        catch (e) { _libcurlPromise = null; reject(e); return; }
+        resolve(window.libcurl);
+      }
+      document.addEventListener("libcurl_load", onReady);
+      poll  = setInterval(() => { if (isReady()) settle(); }, 100);
+      timer = setTimeout(() => settle(new Error("libcurl.js did not become ready")), 20000);
+      if (isReady()) { settle(); return; }
+      if (window.libcurl) return;               // script already on the page, still starting up
+      const s = document.createElement("script");
+      s.src = LIBCURL_SRC;
+      s.onload  = () => setTimeout(() => {      // fallback if neither ready signal exists in this version
+        if (typeof window.libcurl?.fetch === "function") settle();
+      }, 1500);
+      s.onerror = () => settle(new Error("could not load libcurl.js"));
+      document.head.appendChild(s);
+    });
+    return _libcurlPromise;
   }
 
-  async function fetchWorkerHTML(value, redirectCount = 0) {
-    const url = normalizeFetchURL(value);
-    if (!url) {
-      throw new Error("Enter a valid absolute HTTP(S) URL without embedded credentials.");
-    }
-    if (redirectCount > FETCH_MAX_REDIRECTS) {
-      throw new Error("The page redirected too many times.");
-    }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-    try {
-      const response = await fetch(FETCH_API + encodeURIComponent(url), {
-        method: "GET",
-        mode: "cors",
-        signal: controller.signal,
-      });
-      if (!response.ok) throw new Error("Worker HTTP " + response.status);
-      const data = await response.json();
-      if (data.redirect) {
-        const next = normalizeFetchURL(new URL(data.redirect, url).href);
-        if (!next) throw new Error("The upstream returned an invalid redirect URL.");
-        return fetchWorkerHTML(next, redirectCount + 1);
-      }
-      if (data.error) throw new Error(data.error);
-      if (data.encoding && data.encoding !== "text") {
-        throw new Error("The Worker returned a non-text document; this opener expects HTML/text.");
-      }
-      if (typeof data.body !== "string") throw new Error("Unexpected Worker response: missing text body.");
-      const finalURL = normalizeFetchURL(data.url || url);
-      return { html: data.body, url: finalURL || url, contentType: data.contentType || "text/html" };
-    } finally {
-      clearTimeout(timer);
-    }
+  // Warm the library up in the background when the sheet actually contains
+  // a qwerty asset, so the first click doesn't wait on the download.
+  function _scheduleWispPreload() {
+    const go = () => loadLibcurl().catch(() => {});
+    if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 4000 });
+    else setTimeout(go, 2000);
   }
 
-  function openViaWorker(url, title, icon) {
-    const normalizedURL = normalizeFetchURL(url);
+  // Must be called straight from a click so the pop-up isn't blocked: the
+  // tab is opened first, then filled in once the fetch finishes.
+  function openViaWisp(url, title, icon) {
     const tab = window.open("about:blank", "_blank");
     if (!tab) { window.showToast?.("Pop-up blocked. Allow pop-ups to open this.", 3200); return false; }
-    if (!normalizedURL) {
-      tab.close();
-      window.showToast?.("Enter a valid absolute HTTP(S) URL.", 3500);
-      return false;
-    }
 
     const doc = tab.document;
-    doc.title = title || "Embed";
-    if (icon) {
+    doc.title = title || "Embed";                       // title from the sheet row
+
+    if (icon) {                                         // favicon from the sheet row
       const link = doc.createElement("link");
       link.rel = "icon";
       let href = icon;
@@ -1222,36 +1226,54 @@ window.addEventListener("load", () => {
       link.setAttribute("crossorigin", "anonymous");
       doc.head.appendChild(link);
     }
+
     doc.body.style.cssText = "margin:0;padding:0;overflow:hidden;background:#000;color:#fff;font:14px monospace";
     const status = doc.createElement("div");
-    status.style.cssText = "position:fixed;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;white-space:pre-wrap;padding:24px;text-align:center";
-    status.textContent = "Loading page through your Cloudflare Worker…";
+    status.style.cssText = "position:fixed;top:0;right:0;bottom:0;left:0;display:grid;place-items:center";
+    status.textContent = "Connecting...";
     doc.body.appendChild(status);
 
+    const mount = (frame) => {
+      if (tab.closed) return;
+      frame.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;background:#fff";
+      frame.setAttribute("allow", "fullscreen; autoplay; gamepad; clipboard-write");
+      status.remove();
+      doc.body.appendChild(frame);
+    };
+
     (async () => {
+      let timeoutId;
       try {
-        const result = await fetchWorkerHTML(normalizedURL);
-        if (tab.closed) return;
-        const parsed = new DOMParser().parseFromString(result.html, "text/html");
+        const lib = await loadLibcurl();
+        const timeout = new Promise((_, rej) => {
+          timeoutId = setTimeout(() => rej(new Error("Wisp fetch timed out")), WISP_TIMEOUT);
+        });
+        const res = await Promise.race([lib.fetch(url), timeout]);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const html = await res.text();
+        if (!html.trim()) throw new Error("empty response");
+
+        // <base> makes the page's relative links resolve against its real address.
+        const parsed = new DOMParser().parseFromString(html, "text/html");
         const base = parsed.createElement("base");
-        base.href = result.url;
+        base.href = res.url || url;
         parsed.head.insertBefore(base, parsed.head.firstChild);
-        const frame = doc.createElement("iframe");
-        frame.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;background:#fff";
-        frame.setAttribute("allow", "fullscreen; autoplay; gamepad; clipboard-write");
-        frame.setAttribute("sandbox", FETCH_SANDBOX);
-        frame.srcdoc = "<!DOCTYPE html>" + parsed.documentElement.outerHTML;
-        status.remove();
-        doc.body.appendChild(frame);
-      } catch (err) {
-        console.error("[Cloudflare Worker HTML opener]", err);
+
         if (tab.closed) return;
-        status.textContent = "Could not load this page through the Worker.\n" + (err?.message || String(err)) + "\n\n";
-        const direct = doc.createElement("a");
-        direct.href = normalizedURL;
-        direct.textContent = "Open it directly instead";
-        direct.style.cssText = "color:#8cf;text-decoration:underline";
-        status.appendChild(direct);
+        const frame = doc.createElement("iframe");
+        frame.setAttribute("sandbox", WISP_SANDBOX);
+        frame.srcdoc = "\x3C!DOCTYPE html>" + parsed.documentElement.outerHTML;
+        mount(frame);
+      } catch (err) {
+        // Wisp failed (server down, blocked, timeout): fall back to loading
+        // the link directly so the tab isn't left dead.
+        console.warn("[wisp] falling back to a direct load:", err);
+        if (tab.closed) return;
+        const frame = doc.createElement("iframe");
+        frame.src = url;
+        mount(frame);
+      } finally {
+        clearTimeout(timeoutId);
       }
     })();
     return true;
@@ -1268,7 +1290,7 @@ window.addEventListener("load", () => {
     const renderFav     = matched ? matched.imageTrim : "";
 
     if (matched?.typeSet?.has(REALMZ_TYPE_TOKEN)) {
-      openViaWorker(resolvedLink, renderTitle, matched.imageTrim || matched.image || "");
+      openViaWisp(resolvedLink, renderTitle, matched.imageTrim || matched.image || "");
       return;
     }
 
